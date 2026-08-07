@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.services)
 }
 
@@ -31,9 +30,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    // Ab AGP 9 ist Kotlin-Unterstützung eingebaut (kein separates
+    // "org.jetbrains.kotlin.android"-Plugin mehr nötig). Das JVM-Target für
+    // Kotlin wird automatisch von compileOptions oben übernommen.
     buildFeatures {
         viewBinding = true
     }
