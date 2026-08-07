@@ -1,0 +1,30 @@
+{
+  "//": "Vorlage. Nicht die echte Datei. Siehe README.md, Abschnitt 'Firebase einrichten'.",
+  "project_info": {
+    "project_number": "1085712398684",
+    "project_id": "kennzeichen-zyo",
+    "storage_bucket": "kennzeichen-zyo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085712398684:android:xxxxxxxxxxxxxxxxxxxxxx",
+        "android_client_info": {
+          "package_name": "com.oliver.zylka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "ERSETZE_MICH"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
