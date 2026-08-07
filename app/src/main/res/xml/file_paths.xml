@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Muss zu UpdateManager.downloadAndInstall() passen: die APK wird per
+         DownloadManager.Request#setDestinationInExternalFilesDir(context,
+         Environment.DIRECTORY_DOWNLOADS, ...) im Unterordner "Download/" des
+         app-eigenen externen Speichers abgelegt. -->
+    <external-files-path name="downloads" path="Download/" />
+</paths>

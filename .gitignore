@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Signaturschlüssel für Release-Builds: niemals ins Repo, siehe README.md
+keystore.properties
+*.jks
+*.keystore

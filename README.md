@@ -13,6 +13,11 @@ Android-App mit Anmeldung (Firebase Authentication) und Firestore als Datenbank.
 - Beim Registrieren wird ein minimales Profil-Dokument in einer **neuen**
   Firestore-Collection `users/{uid}` angelegt. Die alten Daten aus dem
   Vorgängerprojekt in dieser Datenbank werden dabei nicht angerührt.
+- **In-App-Updates:** Beim Start (nach dem Login) prüft die App in Firestore,
+  ob eine neuere Version veröffentlicht wurde. Falls ja, wird ein Dialog
+  angezeigt; bei Bestätigung wird die neue APK aus Firebase Storage
+  heruntergeladen und die Installation angestoßen. Details siehe Abschnitt
+  "Neue Version veröffentlichen" weiter unten.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -51,17 +56,98 @@ match /users/{uid} {
 }
 ```
 
+Für die Update-Prüfung zusätzlich (nur lesbar für eingeloggte Nutzer, schreibbar
+nur über die Firebase Console / Admin, nie aus der App heraus):
+
+```
+match /app_config/{document} {
+  allow read: if request.auth != null;
+  allow write: if false;
+}
+```
+
+## Firebase Storage einrichten (für Updates)
+
+1. Firebase Console → **Storage** aktivieren (falls noch nicht geschehen).
+2. Unter **Rules** folgendes eintragen: alles standardmäßig gesperrt, nur
+   der Ordner `releases/` ist öffentlich lesbar (damit der Download in der
+   App ohne Firebase-Login funktioniert), aber niemals von außen
+   beschreibbar:
+
+   ```
+   rules_version = '2';
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /{allPaths=**} {
+         allow read, write: if false;
+       }
+       match /releases/{fileName} {
+         allow read: if true;
+         allow write: if false;
+       }
+     }
+   }
+   ```
+
+## Release-Signatur einrichten (einmalig)
+
+Android lässt eine "Update"-Installation nur zu, wenn die neue APK mit
+**demselben Schlüssel** signiert ist wie die bereits installierte. Deshalb
+braucht ihr einen eigenen Release-Keystore, den ihr für alle zukünftigen
+Versionen wiederverwendet.
+
+1. In Android Studio: **Build → Generate Signed Bundle / APK…** → **APK** →
+   **Create new…**, Keystore-Datei z. B. als `zylka-release.jks` **außerhalb**
+   des Projektordners speichern (z. B. eine Ebene über `Zylka/`) und
+   Passwörter/Alias vergeben.
+   ⚠️ Diese `.jks`-Datei und die Passwörter gut aufbewahren (z. B. im
+   Passwort-Manager) – geht sie verloren, können bestehende Installationen
+   nie wieder aktualisiert werden, nur noch komplett neu installiert werden.
+2. Im Projekt-Root (`Zylka/`, neben `build.gradle.kts`) die Datei
+   `keystore.properties.example` kopieren nach `keystore.properties` und mit
+   den echten Werten füllen (Pfad zur `.jks`-Datei, Passwörter, Alias). Diese
+   Datei ist über `.gitignore` bewusst vom Repo ausgeschlossen.
+3. Danach erzeugt **Build → Generate Signed Bundle / APK…** (oder
+   `./gradlew assembleRelease`) automatisch signierte Release-APKs unter
+   `app/build/outputs/apk/release/`.
+
+## Neue Version veröffentlichen
+
+1. In `app/build.gradle.kts` unter `defaultConfig`:
+   - `versionCode` um 1 erhöhen (z. B. `1` → `2`)
+   - `versionName` auf die neue Anzeigeversion setzen (z. B. `"1.1.0"`)
+2. Signierte Release-APK bauen: **Build → Generate Signed Bundle / APK…** →
+   **APK** → euren Release-Keystore auswählen → **release**.
+3. Die entstandene `app-release.apk` in der Firebase Console unter
+   **Storage** in den Ordner **`releases/`** hochladen (z. B. als
+   `zylka-1.1.0.apk`).
+4. Die Datei anklicken → Download-Link kopieren (Feld "Access token" /
+   Download-URL in den Datei-Details).
+5. In **Firestore** das Dokument **`app_config/version`** anlegen bzw.
+   aktualisieren mit den Feldern:
+   - `versionCode` (Zahl) – muss zum neuen `versionCode` aus Schritt 1 passen
+   - `versionName` (Text) – z. B. `"1.1.0"`
+   - `apkUrl` (Text) – der kopierte Download-Link
+   - `notes` (Text, optional) – z. B. "Fehlerbehebungen"
+
+Sobald das gespeichert ist, bekommen alle Nutzer beim nächsten App-Start den
+Update-Hinweis angezeigt.
+
 ## Projektstruktur
 
 ```
 app/src/main/java/com/oliver/zylka/
-├── SplashActivity.kt        # Prüft gespeicherte Sitzung, leitet weiter
-├── MainActivity.kt          # Startbildschirm nach dem Login
+├── SplashActivity.kt          # Prüft gespeicherte Sitzung, leitet weiter
+├── MainActivity.kt            # Startbildschirm nach dem Login, stößt Update-Check an
 ├── auth/
 │   ├── LoginActivity.kt
 │   └── RegisterActivity.kt
-└── data/
-    └── AuthRepository.kt    # Kapselt FirebaseAuth + Firestore-Profil
+├── data/
+│   ├── AuthRepository.kt      # Kapselt FirebaseAuth + Firestore-Profil
+│   ├── UpdateInfo.kt          # Datenklasse für app_config/version
+│   └── UpdateRepository.kt    # Liest app_config/version aus Firestore
+└── update/
+    └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```
 
 ## Nächste mögliche Schritte
