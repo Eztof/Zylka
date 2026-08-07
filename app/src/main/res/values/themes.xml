@@ -1,6 +1,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.Zylka" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!-- Base application theme. Bewusst NICHT "DayNight", sondern fest auf
+         Hell gestellt - die App soll den System-Dunkelmodus ignorieren,
+         damit z. B. Textfarben nicht unerwartet mit dem Hintergrund
+         verschmelzen. -->
+    <style name="Theme.Zylka" parent="Theme.MaterialComponents.Light.DarkActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>

@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +16,7 @@ import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.UpdateInfo
 import com.oliver.zylka.data.UpdateRepository
 import com.oliver.zylka.databinding.ActivityMainBinding
+import com.oliver.zylka.databinding.DialogUpdateProgressBinding
 import com.oliver.zylka.update.UpdateManager
 import kotlinx.coroutines.launch
 
@@ -50,12 +53,25 @@ class MainActivity : AppCompatActivity() {
         }
         binding.textWelcome.text = getString(R.string.welcome_message, user.email)
 
-        binding.buttonLogout.setOnClickListener {
-            authRepository.logout()
-            goToLogin()
+        binding.cardKennzeichen.setOnClickListener {
+            Toast.makeText(this, R.string.feature_coming_soon, Toast.LENGTH_SHORT).show()
         }
 
         checkForUpdate()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_logout) {
+            authRepository.logout()
+            goToLogin()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     private fun checkForUpdate() {
@@ -104,8 +120,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startDownload(update: UpdateInfo) {
-        Toast.makeText(this, R.string.update_downloading, Toast.LENGTH_SHORT).show()
-        updateManager.downloadAndInstall(update.apkUrl, update.versionName)
+        val progressBinding = DialogUpdateProgressBinding.inflate(layoutInflater)
+        val progressDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.update_title)
+            .setView(progressBinding.root)
+            .setCancelable(false)
+            .show()
+
+        lifecycleScope.launch {
+            try {
+                updateManager.downloadAndInstall(update.apkUrl, update.versionName) { percent ->
+                    progressBinding.progressBar.progress = percent
+                    progressBinding.textProgressPercent.text =
+                        getString(R.string.update_progress_percent, percent)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, R.string.update_download_failed, Toast.LENGTH_LONG).show()
+            } finally {
+                progressDialog.dismiss()
+            }
+        }
     }
 
     private fun goToLogin() {

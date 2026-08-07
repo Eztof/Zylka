@@ -1,29 +1,25 @@
 package com.oliver.zylka.update
 
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
 import android.os.Environment
-import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.oliver.zylka.BuildConfig
-import com.oliver.zylka.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * Kümmert sich um das Herunterladen und Anstoßen der Installation einer
- * neuen APK-Version. Die eigentliche Installation übernimmt der
- * System-Installer von Android - diese Klasse lädt nur herunter und öffnet
- * den passenden Installations-Intent.
+ * neuen APK-Version. Der Download läuft komplett innerhalb der App (mit
+ * Fortschrittsanzeige über [onProgress]); nur die abschließende
+ * Installationsbestätigung übernimmt der System-Installer von Android -
+ * das lässt sich aus Sicherheitsgründen nicht automatisieren.
  */
 class UpdateManager(private val context: Context) {
-
-    private val downloadManager: DownloadManager
-        get() = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
     /** True, wenn die auf dem Server hinterlegte Version neuer ist als die installierte. */
     fun isNewerThanInstalled(remoteVersionCode: Long): Boolean {
@@ -37,53 +33,58 @@ class UpdateManager(private val context: Context) {
      */
     fun canInstallUnknownApps(): Boolean = context.packageManager.canRequestPackageInstalls()
 
-    fun downloadAndInstall(apkUrl: String, versionName: String) {
-        val fileName = "zylka-update-$versionName.apk"
+    /**
+     * Lädt die APK herunter und meldet den Fortschritt in Prozent (0-100)
+     * über [onProgress] (wird auf dem Hauptthread aufgerufen). Öffnet nach
+     * Abschluss automatisch den System-Installer.
+     */
+    suspend fun downloadAndInstall(
+        apkUrl: String,
+        versionName: String,
+        onProgress: (percent: Int) -> Unit
+    ) {
         val destinationFile = File(
             context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-            fileName
+            "zylka-update-$versionName.apk"
         )
         if (destinationFile.exists()) {
             destinationFile.delete()
         }
 
-        val request = DownloadManager.Request(Uri.parse(apkUrl))
-            .setTitle("Zylka-Update")
-            .setDescription("Version $versionName wird heruntergeladen")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setMimeType("application/vnd.android.package-archive")
-            .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
+        withContext(Dispatchers.IO) {
+            val connection = URL(apkUrl).openConnection() as HttpURLConnection
+            try {
+                connection.connectTimeout = 15_000
+                connection.readTimeout = 15_000
+                connection.connect()
+                val totalBytes = connection.contentLength
+                var lastReportedPercent = -1
 
-        val downloadId = downloadManager.enqueue(request)
-        registerCompletionReceiver(downloadId, destinationFile)
-    }
-
-    private fun registerCompletionReceiver(downloadId: Long, destinationFile: File) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(receiverContext: Context, intent: Intent) {
-                val completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                if (completedId != downloadId) return
-
-                receiverContext.unregisterReceiver(this)
-
-                if (!destinationFile.exists()) {
-                    Toast.makeText(
-                        receiverContext,
-                        R.string.update_download_failed,
-                        Toast.LENGTH_LONG
-                    ).show()
-                    return
+                connection.inputStream.use { input ->
+                    destinationFile.outputStream().use { output ->
+                        val buffer = ByteArray(8 * 1024)
+                        var bytesCopied = 0L
+                        var read: Int
+                        while (input.read(buffer).also { read = it } != -1) {
+                            output.write(buffer, 0, read)
+                            bytesCopied += read
+                            if (totalBytes > 0) {
+                                val percent = ((bytesCopied * 100) / totalBytes).toInt()
+                                if (percent != lastReportedPercent) {
+                                    lastReportedPercent = percent
+                                    withContext(Dispatchers.Main) { onProgress(percent) }
+                                }
+                            }
+                        }
+                    }
                 }
-                openInstaller(destinationFile)
+            } finally {
+                connection.disconnect()
             }
         }
 
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            ContextCompat.RECEIVER_EXPORTED
-        )
+        withContext(Dispatchers.Main) { onProgress(100) }
+        openInstaller(destinationFile)
     }
 
     private fun openInstaller(apkFile: File) {
