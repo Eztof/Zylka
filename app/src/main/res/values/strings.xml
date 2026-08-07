@@ -26,4 +26,14 @@
     <!-- Main -->
     <string name="welcome_message">Willkommen, %1$s!</string>
     <string name="action_logout">Abmelden</string>
+
+    <!-- Update -->
+    <string name="update_title">Update verfügbar</string>
+    <string name="update_message">Version %1$s ist verfügbar. Jetzt herunterladen und installieren?</string>
+    <string name="action_update_now">Jetzt aktualisieren</string>
+    <string name="action_update_later">Später</string>
+    <string name="update_downloading">Update wird heruntergeladen …</string>
+    <string name="update_permission_hint">Bitte erlaube im nächsten Schritt die Installation von Apps aus dieser Quelle.</string>
+    <string name="update_permission_denied">Ohne diese Berechtigung kann das Update nicht installiert werden.</string>
+    <string name="update_download_failed">Update konnte nicht heruntergeladen werden.</string>
 </resources>
