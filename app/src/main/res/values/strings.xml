@@ -26,6 +26,8 @@
     <!-- Main -->
     <string name="welcome_message">Willkommen, %1$s!</string>
     <string name="action_logout">Abmelden</string>
+    <string name="feature_kennzeichen">Kennzeichen</string>
+    <string name="feature_coming_soon">Diese Funktion kommt bald.</string>
 
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>
@@ -33,6 +35,7 @@
     <string name="action_update_now">Jetzt aktualisieren</string>
     <string name="action_update_later">Später</string>
     <string name="update_downloading">Update wird heruntergeladen …</string>
+    <string name="update_progress_percent">%1$d %%</string>
     <string name="update_permission_hint">Bitte erlaube im nächsten Schritt die Installation von Apps aus dieser Quelle.</string>
     <string name="update_permission_denied">Ohne diese Berechtigung kann das Update nicht installiert werden.</string>
     <string name="update_download_failed">Update konnte nicht heruntergeladen werden.</string>

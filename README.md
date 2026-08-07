@@ -15,9 +15,16 @@ Android-App mit Anmeldung (Firebase Authentication) und Firestore als Datenbank.
   Vorgängerprojekt in dieser Datenbank werden dabei nicht angerührt.
 - **In-App-Updates:** Beim Start (nach dem Login) prüft die App in Firestore,
   ob eine neuere Version veröffentlicht wurde. Falls ja, wird ein Dialog
-  angezeigt; bei Bestätigung wird die neue APK aus Firebase Storage
-  heruntergeladen und die Installation angestoßen. Details siehe Abschnitt
-  "Neue Version veröffentlichen" weiter unten.
+  angezeigt; bei Bestätigung läuft der Download komplett innerhalb der App
+  mit Fortschrittsbalken (kein Verlassen der App, keine Benachrichtigung
+  nötig). Nur der abschließende Installations-Dialog kommt vom
+  Android-System selbst – das lässt sich aus Sicherheitsgründen nicht
+  automatisieren (gilt für jede App außerhalb des Play Stores). Details
+  siehe Abschnitt "Neue Version veröffentlichen" weiter unten.
+- **Startbildschirm (`MainActivity`):** feste helle Darstellung (ignoriert
+  den System-Dunkelmodus bewusst), "Abmelden" liegt im Menü oben rechts
+  (⋮), darunter Platz für Funktions-Kacheln – aktuell ein Platzhalter
+  "Kennzeichen".
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
