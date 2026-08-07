@@ -37,6 +37,22 @@
             android:name=".MainActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".kennzeichen.KennzeichenHomeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".kennzeichen.KennzeichenEntryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".kennzeichen.KennzeichenCollectionActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".kennzeichen.KennzeichenMapActivity"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

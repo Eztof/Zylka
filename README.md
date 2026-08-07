@@ -23,8 +23,64 @@ Android-App mit Anmeldung (Firebase Authentication) und Firestore als Datenbank.
   siehe Abschnitt "Neue Version veröffentlichen" weiter unten.
 - **Startbildschirm (`MainActivity`):** feste helle Darstellung (ignoriert
   den System-Dunkelmodus bewusst), "Abmelden" liegt im Menü oben rechts
-  (⋮), darunter Platz für Funktions-Kacheln – aktuell ein Platzhalter
-  "Kennzeichen".
+  (⋮), darunter Platz für Funktions-Kacheln – die erste Kachel
+  "Kennzeichen" führt ins Kennzeichen-Sammelspiel (siehe unten).
+
+## Kennzeichen-Sammelspiel
+
+Die Kachel **„Kennzeichen"** führt in `com.oliver.zylka.kennzeichen` (klassische
+Activities + XML-Layouts + ViewBinding, wie der Rest der App):
+
+- **Eintragen** (`KennzeichenEntryActivity`): Kürzel per Suche antippen und als
+  gefunden markieren.
+- **Meine Sammlung** (`KennzeichenCollectionActivity`): alle Kürzel des gewählten
+  Landes, entdeckt/nicht entdeckt, durchsuchbar, mit Fortschrittsbalken.
+- **Karte** (`KennzeichenMapActivity`): echte geografische Karte
+  (`KennzeichenMapView`, eine `Canvas`-basierte Custom View), entdeckte Regionen
+  werden eingefärbt.
+- **Globale Sammlung**: dieselbe Listenansicht, aber mit den Funden *aller*
+  Spieler zusammen (jeder sammelt weiter für sich selbst; das ist eine
+  gemeinsame, read-only "was hat die Community schon gefunden"-Sicht).
+
+Auf `KennzeichenHomeActivity` lässt sich das Land wechseln (Chips: 🇩🇪 🇦🇹 🇨🇭 🇫🇷).
+
+### Datenquellen & Umfang (v1)
+
+| Land | Sammel-Einheit | Anzahl Codes | Karte |
+|---|---|---|---|
+| 🇩🇪 Deutschland | Unterscheidungszeichen (Landkreis/kreisfreie Stadt), inkl. seit 2012 wieder zugelassener historischer Kürzel | 688 | 16 Bundesländer, eingefärbt nach Fortschritt ihrer Kreise (siehe Einschränkung unten) |
+| 🇦🇹 Österreich | Bezirkskennzeichen | 97 | echte Bezirksgrenzen (94 davon mit Geometrie) |
+| 🇨🇭 Schweiz | Kantonskürzel | 26 | echte Kantonsgrenzen |
+| 🇫🇷 Frankreich | Département-Nummer (inkl. Übersee-Départements) | 101 | echte Département-Grenzen (Übersee als Kachel-Liste) |
+
+Quellen: [openpotato/kfz-kennzeichen](https://github.com/openpotato/kfz-kennzeichen) (DE/AT/CH-Zuordnung),
+[gregoiredavid/france-geojson](https://github.com/gregoiredavid/france-geojson) (FR-Umrisse),
+[isellsoap/deutschlandGeoJSON](https://github.com/isellsoap/deutschlandGeoJSON) (DE-Bundesländer-Umrisse),
+[ginseng666/GeoJSON-TopoJSON-Austria](https://github.com/ginseng666/GeoJSON-TopoJSON-Austria) (AT-Bezirksumrisse),
+[d-qn/swiss-maps](https://github.com/d-qn/swiss-maps) (CH-Kantonsumrisse). Alle Rohdaten liegen als
+GeoJSON unter `app/src/main/assets/geo/` bzw. als JSON-Kataloge unter
+`app/src/main/assets/catalog/` und lassen sich dort direkt korrigieren/erweitern.
+
+**Bekannte Einschränkung:** Für Deutschland gibt es (noch) keine Landkreis-genaue
+Karte – eine zuverlässige Zuordnung aller ~400 Landkreis-Umrisse zu ihrem
+Kennzeichen-Kürzel war aus den frei verfügbaren Geodaten nicht mit ausreichender
+Sicherheit automatisiert herstellbar. Die Karte zeigt daher vorerst die 16
+Bundesländer, eingefärbt nach dem Anteil ihrer entdeckten Kreis-Kennzeichen. Das
+Sammeln selbst funktioniert bereits auf voller Landkreis-Ebene (Eintragen, Liste,
+Fortschritt, global). Eine Landkreis-Karte ist als Ausbaustufe 2 vorgesehen,
+sobald eine verifizierte AGS↔Kennzeichen-Quelle eingebunden ist.
+
+Die österreichische Zuordnung ist über die offizielle CSV automatisch abgeglichen;
+4 von 97 Bezirken (Rust, Braunau, Salzburg-Umgebung, Leoben) brauchten eine
+manuelle Korrektur wegen abweichender Schreibweisen zwischen den beiden
+Quelldatensätzen – bei Auffälligkeiten bitte prüfen.
+
+Firestore-Layout (siehe auch Abschnitt "Firestore-Regeln"):
+
+```
+users/{uid}/discoveries/{countryId}   { codes: [String], updatedAt }   // persönlich
+globalDiscoveries/{countryId}         { codes: [String], updatedAt }   // alle Spieler
+```
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -70,6 +126,23 @@ nur über die Firebase Console / Admin, nie aus der App heraus):
 match /app_config/{document} {
   allow read: if request.auth != null;
   allow write: if false;
+}
+```
+
+Für das Kennzeichen-Sammelspiel (persönliche Funde nur für den jeweiligen Nutzer,
+globale Funde für alle eingeloggten Nutzer lesbar und nur ergänzbar, nie
+löschbar/überschreibbar) – siehe auch `firestore.rules` im Repo-Root:
+
+```
+match /users/{userId}/discoveries/{country} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+
+match /globalDiscoveries/{country} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null;
+  allow update: if request.auth != null
+    && request.resource.data.codes.hasAll(resource.data.codes);
 }
 ```
 
@@ -152,7 +225,20 @@ app/src/main/java/com/oliver/zylka/
 ├── data/
 │   ├── AuthRepository.kt      # Kapselt FirebaseAuth + Firestore-Profil
 │   ├── UpdateInfo.kt          # Datenklasse für app_config/version
-│   └── UpdateRepository.kt    # Liest app_config/version aus Firestore
+│   ├── UpdateRepository.kt    # Liest app_config/version aus Firestore
+│   └── kennzeichen/           # Datenschicht des Kennzeichen-Sammelspiels
+│       ├── Country.kt              # DE/AT/CH/FR
+│       ├── PlateRegion.kt          # Ein Kennzeichen-Kürzel + Metadaten
+│       ├── CatalogRepository.kt    # Lädt assets/catalog/*.json
+│       ├── GeoShape.kt / GeoRepository.kt  # Lädt & parst assets/geo/*.geojson
+│       └── DiscoveryRepository.kt  # Firestore: persönliche + globale Funde
+├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
+│   ├── KennzeichenHomeActivity.kt
+│   ├── KennzeichenEntryActivity.kt
+│   ├── KennzeichenCollectionActivity.kt
+│   ├── KennzeichenMapActivity.kt
+│   ├── KennzeichenMapView.kt        # Canvas-Custom-View, zeichnet die Karte
+│   └── PlateRegionAdapter.kt        # RecyclerView-Adapter für die Listen
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

@@ -29,6 +29,32 @@
     <string name="feature_kennzeichen">Kennzeichen</string>
     <string name="feature_coming_soon">Diese Funktion kommt bald.</string>
 
+    <!-- Kennzeichen-Sammelspiel -->
+    <string name="kennzeichen_home_title">Kennzeichen sammeln</string>
+    <string name="kennzeichen_progress_personal">Deine Sammlung</string>
+    <string name="kennzeichen_progress_global">Alle Spieler zusammen</string>
+    <string name="kennzeichen_action_entry_title">Kennzeichen eintragen</string>
+    <string name="kennzeichen_action_entry_subtitle">Ein neu entdecktes Kennzeichen erfassen</string>
+    <string name="kennzeichen_action_collection_title">Meine Sammlung</string>
+    <string name="kennzeichen_action_collection_subtitle">Alle Kennzeichen – entdeckt oder nicht</string>
+    <string name="kennzeichen_action_map_title">Karte</string>
+    <string name="kennzeichen_action_map_subtitle">Deine entdeckten Regionen auf der Karte</string>
+    <string name="kennzeichen_action_global_title">Globale Sammlung</string>
+    <string name="kennzeichen_action_global_subtitle">Was alle Spieler zusammen schon gefunden haben</string>
+    <string name="kennzeichen_already_found">Schon entdeckt</string>
+    <string name="kennzeichen_search_hint">Kürzel oder Ort suchen, z. B. \"M\" oder \"München\"</string>
+    <string name="kennzeichen_only_missing">Nur fehlende zeigen</string>
+    <string name="kennzeichen_entry_title">Eintragen – %1$s</string>
+    <string name="kennzeichen_discovered_toast">%1$s – %2$s entdeckt!</string>
+    <string name="kennzeichen_collection_personal_title">Meine Sammlung</string>
+    <string name="kennzeichen_collection_global_title">Globale Sammlung</string>
+    <string name="kennzeichen_progress_summary">%1$d / %2$d entdeckt</string>
+    <string name="kennzeichen_map_title">Karte – %1$s</string>
+    <string name="kennzeichen_map_germany_note">Deutschland wird auf Bundesland-Ebene eingefärbt (Anteil der entdeckten Kennzeichen je Bundesland) – die Landkreis-genaue Karte folgt in einer späteren Version.</string>
+    <string name="kennzeichen_scope_personal">Meine Funde</string>
+    <string name="kennzeichen_scope_global">Alle Spieler</string>
+    <string name="kennzeichen_outremer_title">Übersee-Départements</string>
+
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>
     <string name="update_message">Version %1$s ist verfügbar. Jetzt herunterladen und installieren?</string>
