@@ -4,9 +4,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 /**
- * Speichert die persönlichen Schwellen-Einstellungen des Notenspiegelrechners online in
- * Firestore (`notenspiegel_settings/{uid}`), damit sie auf jedem Gerät desselben Kontos
- * verfügbar sind - kein lokaler/Offline-Zustand.
+ * Speichert die persönlichen Einstellungen des Notenspiegelrechners online in Firestore
+ * (`notenspiegel_settings/{uid}`), damit sie auf jedem Gerät desselben Kontos verfügbar
+ * sind - kein lokaler/Offline-Zustand.
  */
 class NotenspiegelSettingsRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -23,6 +23,7 @@ class NotenspiegelSettingsRepository(
                 ?: GradingPresets.SECHS_STUFEN_DEFAULT,
             funfzehnPunkteThresholds = funfzehn?.takeIf { it.size == GradingPresets.FUNFZEHN_PUNKTE_DEFAULT.size }
                 ?: GradingPresets.FUNFZEHN_PUNKTE_DEFAULT,
+            pointsPrecision = PointsPrecision.fromId(snapshot.getString(FIELD_POINTS_PRECISION)),
         )
     }
 
@@ -30,6 +31,7 @@ class NotenspiegelSettingsRepository(
         val data = mapOf(
             FIELD_SECHS_STUFEN to settings.sechsStufenThresholds,
             FIELD_FUNFZEHN_PUNKTE to settings.funfzehnPunkteThresholds,
+            FIELD_POINTS_PRECISION to settings.pointsPrecision.id,
         )
         firestore.collection(COLLECTION).document(uid).set(data).await()
     }
@@ -41,5 +43,6 @@ class NotenspiegelSettingsRepository(
         private const val COLLECTION = "notenspiegel_settings"
         private const val FIELD_SECHS_STUFEN = "sechsStufenThresholds"
         private const val FIELD_FUNFZEHN_PUNKTE = "funfzehnPunkteThresholds"
+        private const val FIELD_POINTS_PRECISION = "pointsPrecision"
     }
 }

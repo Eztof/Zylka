@@ -101,6 +101,8 @@ class NotenspiegelActivity : AppCompatActivity() {
             return
         }
         val thresholds = settings.thresholdsFor(selectedSystem)
-        adapter.submitList(NotenspiegelCalculator.compute(selectedSystem, thresholds, totalPoints))
+        adapter.submitList(
+            NotenspiegelCalculator.compute(selectedSystem, thresholds, totalPoints, settings.pointsPrecision),
+        )
     }
 }

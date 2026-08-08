@@ -85,6 +85,9 @@
     <string name="notenspiegel_settings_save">Speichern</string>
     <string name="notenspiegel_settings_saved">Gespeichert</string>
     <string name="notenspiegel_settings_reset">Zurücksetzen</string>
+    <string name="notenspiegel_precision_title">Punkte-Genauigkeit</string>
+    <string name="notenspiegel_precision_whole">Ganze Punkte</string>
+    <string name="notenspiegel_precision_half">Halbe Punkte</string>
 
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>

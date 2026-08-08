@@ -218,8 +218,11 @@ bundesweit übliche Punkte-Prozent-Zuordnung **95 / 90 / 85 / 80 / 75 / 70 /
 in den NRW-Vorgaben zur Notenbildung im Zentralabitur als Orientierung
 dient. Beide Schlüssel lassen sich über das Menü **„Einstellungen"**
 (`NotenspiegelSettingsActivity`) Note für Note frei anpassen (an das, was
-die eigene Fachkonferenz tatsächlich beschlossen hat) und werden pro Konto
-in Firestore gespeichert (`notenspiegel_settings/{uid}`) - stehen also auf
+die eigene Fachkonferenz tatsächlich beschlossen hat). Dort lässt sich auch
+die **Punkte-Genauigkeit** umstellen - ganze Punkte oder halbe Punkte
+(0,5) - falls halbe Punkte (Kommawerte) nicht gewünscht sind
+(`PointsPrecision`, Standard: halbe Punkte). Alles wird pro Konto in
+Firestore gespeichert (`notenspiegel_settings/{uid}`) - steht also auf
 jedem Gerät desselben Kontos zur Verfügung.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
