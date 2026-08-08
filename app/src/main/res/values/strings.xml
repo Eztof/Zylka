@@ -63,6 +63,16 @@
     <string name="kennzeichen_history_just_now">gerade eben</string>
     <string name="kennzeichen_history_location">Mit Standort erfasst</string>
 
+    <!-- Abfallkalender -->
+    <string name="feature_abfallkalender">Abfallkalender</string>
+    <string name="waste_type_restabfall">Restabfall</string>
+    <string name="waste_type_biotonne">Biotonne</string>
+    <string name="waste_type_altpapier">Altpapier</string>
+    <string name="waste_type_gelber_sack">Gelber Sack</string>
+    <string name="waste_reminder_title">Erinnerung</string>
+    <string name="waste_reminder_time_evening_before">%1$s Uhr, am Vorabend</string>
+    <string name="waste_date_format">EEE, d. MMMM yyyy</string>
+
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>
     <string name="update_message">Version %1$s ist verfügbar. Jetzt herunterladen und installieren?</string>
