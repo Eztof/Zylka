@@ -11,6 +11,7 @@ import com.oliver.zylka.data.notenspiegel.GradingPresets
 import com.oliver.zylka.data.notenspiegel.GradingSystem
 import com.oliver.zylka.data.notenspiegel.NotenspiegelSettings
 import com.oliver.zylka.data.notenspiegel.NotenspiegelSettingsRepository
+import com.oliver.zylka.data.notenspiegel.PointsPrecision
 import com.oliver.zylka.databinding.ActivityNotenspiegelSettingsBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
 import kotlinx.coroutines.launch
@@ -48,6 +49,17 @@ class NotenspiegelSettingsActivity : AppCompatActivity() {
             showThresholdsForSelectedSystem()
         }
 
+        binding.togglePrecision.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            settings = settings.copy(
+                pointsPrecision = if (checkedId == binding.buttonPrecisionWhole.id) {
+                    PointsPrecision.WHOLE
+                } else {
+                    PointsPrecision.HALF
+                },
+            )
+        }
+
         binding.buttonReset.setOnClickListener {
             settings = settings.withThresholds(selectedSystem, GradingPresets.defaultFor(selectedSystem))
             showThresholdsForSelectedSystem()
@@ -59,6 +71,12 @@ class NotenspiegelSettingsActivity : AppCompatActivity() {
             val uid = authRepository.currentUser?.uid ?: return@launch
             settings = settingsRepository.load(uid)
             showThresholdsForSelectedSystem()
+            val precisionButtonId = if (settings.pointsPrecision == PointsPrecision.WHOLE) {
+                binding.buttonPrecisionWhole.id
+            } else {
+                binding.buttonPrecisionHalf.id
+            }
+            binding.togglePrecision.check(precisionButtonId)
         }
     }
 

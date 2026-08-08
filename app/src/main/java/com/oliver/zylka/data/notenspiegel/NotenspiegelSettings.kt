@@ -1,9 +1,11 @@
 package com.oliver.zylka.data.notenspiegel
 
-/** A user's saved (or default) percentage thresholds for both grading systems. */
+/** A user's saved (or default) percentage thresholds for both grading systems, plus the
+ * point rounding precision they want the results in. */
 data class NotenspiegelSettings(
     val sechsStufenThresholds: List<Double> = GradingPresets.SECHS_STUFEN_DEFAULT,
     val funfzehnPunkteThresholds: List<Double> = GradingPresets.FUNFZEHN_PUNKTE_DEFAULT,
+    val pointsPrecision: PointsPrecision = PointsPrecision.DEFAULT,
 ) {
     fun thresholdsFor(system: GradingSystem): List<Double> = when (system) {
         GradingSystem.SECHS_STUFEN -> sechsStufenThresholds
