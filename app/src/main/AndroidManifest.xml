@@ -71,6 +71,14 @@
             android:name=".waste.WasteCalendarActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".notenspiegel.NotenspiegelActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".notenspiegel.NotenspiegelSettingsActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".waste.WasteAlarmReceiver"
             android:exported="false" />

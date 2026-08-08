@@ -33,8 +33,8 @@ Layouts angelegt.
   siehe Abschnitt "Neue Version veröffentlichen" weiter unten.
 - **Startbildschirm (`MainActivity`):** feste helle Darstellung (ignoriert
   den System-Dunkelmodus bewusst), "Abmelden" liegt im Menü oben rechts
-  (⋮), darunter Funktions-Kacheln: "Kennzeichen" (Sammelspiel, siehe unten)
-  und "Abfallkalender" (siehe unten).
+  (⋮), darunter Funktions-Kacheln: "Kennzeichen" (Sammelspiel), "Abfallkalender"
+  und "Notenspiegel" (alle drei siehe unten).
 
 ## Kennzeichen-Sammelspiel
 
@@ -191,6 +191,37 @@ geöffnet wurde:
   `SCHEDULE_EXACT_ALARM`; beide werden erst angefragt, wenn die Erinnerung
   in der App eingeschaltet wird, nicht schon beim App-Start.
 
+## Notenspiegelrechner
+
+Die Kachel **„Notenspiegel"** führt in `com.oliver.zylka.notenspiegel`
+(`NotenspiegelActivity`): Gesamtpunktzahl eingeben, Notensystem wählen
+(Sechs-Stufen 1–6 oder die 15-0-Punkteskala der gymnasialen Oberstufe) -
+die App zeigt sofort, von welcher bis zu welcher Punktzahl jede Note reicht.
+
+### Rechenweg
+
+Grundlage sind Prozent-Schwellen je Note (Mindestprozent, das für die Note
+nötig ist). Aus Gesamtpunktzahl × Schwelle ergibt sich je Note ein
+Punkte-Bereich, gerundet auf halbe Punkte (`NotenspiegelCalculator`):
+lückenlos und überschneidungsfrei, die beste Note reicht immer bis zur
+vollen Gesamtpunktzahl.
+
+### Voreingestellte Schlüssel & Einstellungen
+
+NRW schreibt für Klassenarbeiten in der Sekundarstufe I bewusst **keinen**
+landesweit einheitlichen Notenschlüssel vor - das legt die jeweilige
+Fachkonferenz fest. Als Startwert ist der verbreitete Sechs-Stufen-Schlüssel
+**92 / 81 / 67 / 50 / 30 / 0 %** hinterlegt (u. a. als IHK-Notenschlüssel
+bekannt und an vielen Schulen gebräuchlich). Für die 15-Punkte-Skala ist die
+bundesweit übliche Punkte-Prozent-Zuordnung **95 / 90 / 85 / 80 / 75 / 70 /
+65 / 60 / 55 / 50 / 45 / 40 / 33 / 27 / 20 / 0 %** hinterlegt, wie sie u. a.
+in den NRW-Vorgaben zur Notenbildung im Zentralabitur als Orientierung
+dient. Beide Schlüssel lassen sich über das Menü **„Einstellungen"**
+(`NotenspiegelSettingsActivity`) Note für Note frei anpassen (an das, was
+die eigene Fachkonferenz tatsächlich beschlossen hat) und werden pro Konto
+in Firestore gespeichert (`notenspiegel_settings/{uid}`) - stehen also auf
+jedem Gerät desselben Kontos zur Verfügung.
+
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
 Das Projekt nutzt die bestehende Firebase-Datenbank `kennzeichen-zyo`.
@@ -249,6 +280,15 @@ match /discoveries/{discoveryId} {
   allow create: if request.auth != null
     && request.resource.data.uid == request.auth.uid;
   allow update, delete: if false;
+}
+```
+
+Für den Notenspiegelrechner (persönliche Schwellen-Einstellungen, nur vom
+eigenen Konto lesbar/schreibbar):
+
+```
+match /notenspiegel_settings/{uid} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
 }
 ```
 
@@ -345,6 +385,12 @@ app/src/main/java/com/oliver/zylka/
 │       ├── WasteEvent.kt             # Ein Abholtermin (Datum + Abfallarten)
 │       ├── WasteCalendarRepository.kt  # Lädt assets/waste/*.json
 │       └── WastePrefs.kt             # Erinnerung an/aus + Uhrzeit (SharedPreferences)
+│   └── notenspiegel/           # Datenschicht des Notenspiegelrechners
+│       ├── GradingSystem.kt          # Sechs-Stufen / 15-Punkte-Skala
+│       ├── GradingPresets.kt         # Standard-Prozent-Schwellen je Skala
+│       ├── NotenspiegelSettings.kt   # Persönliche (oder Standard-)Schwellen
+│       ├── NotenspiegelSettingsRepository.kt  # Firestore: notenspiegel_settings/{uid}
+│       └── NotenspiegelCalculator.kt # Prozent-Schwellen → Punkte-Bereiche je Note
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -361,6 +407,11 @@ app/src/main/java/com/oliver/zylka/
 │   ├── WasteAlarmReceiver.kt        # Zeigt Benachrichtigung, plant Folgealarm
 │   ├── WasteBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
 │   └── WasteNotifier.kt             # Notification-Channel + Benachrichtigung
+├── notenspiegel/                # UI des Notenspiegelrechners
+│   ├── NotenspiegelActivity.kt       # Eingabe + Ergebnisliste
+│   ├── NotenspiegelSettingsActivity.kt  # Schwellen bearbeiten + speichern
+│   ├── GradeBandAdapter.kt          # RecyclerView-Adapter für die Ergebnisliste
+│   └── GradeThresholdEditAdapter.kt # RecyclerView-Adapter für die Schwellen-Eingabe
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```
