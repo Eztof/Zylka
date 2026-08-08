@@ -10,8 +10,8 @@ import com.oliver.zylka.R
  */
 enum class WasteType(
     val id: String,
-    @StringRes val label: Int,
-    @ColorRes val color: Int,
+    @param:StringRes val label: Int,
+    @param:ColorRes val color: Int,
 ) {
     RESTABFALL("RESTABFALL", R.string.waste_type_restabfall, R.color.waste_restabfall),
     BIOTONNE("BIOTONNE", R.string.waste_type_biotonne, R.color.waste_biotonne),
