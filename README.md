@@ -33,8 +33,8 @@ Layouts angelegt.
   siehe Abschnitt "Neue Version veröffentlichen" weiter unten.
 - **Startbildschirm (`MainActivity`):** feste helle Darstellung (ignoriert
   den System-Dunkelmodus bewusst), "Abmelden" liegt im Menü oben rechts
-  (⋮), darunter Platz für Funktions-Kacheln – die erste Kachel
-  "Kennzeichen" führt ins Kennzeichen-Sammelspiel (siehe unten).
+  (⋮), darunter Funktions-Kacheln: "Kennzeichen" (Sammelspiel, siehe unten)
+  und "Abfallkalender" (siehe unten).
 
 ## Kennzeichen-Sammelspiel
 
@@ -137,6 +137,59 @@ Der Standort wird best-effort über `LocationManager.getCurrentLocation(...)`
 abgefragt (Berechtigung `ACCESS_COARSE_LOCATION`/`ACCESS_FINE_LOCATION`, wird
 beim ersten Eintragen einmalig angefragt); ohne Berechtigung oder bei Timeout
 wird der Fund trotzdem gespeichert, nur ohne Koordinaten.
+
+## Abfallkalender
+
+Die Kachel **„Abfallkalender"** führt in `com.oliver.zylka.waste`
+(`WasteCalendarActivity`): eine chronologische Übersicht aller kommenden
+Abfuhrtermine, farblich nach Tonne unterschieden (Restabfall, Biotonne,
+Altpapier, Gelber Sack – angelehnt an die realen deutschen Tonnenfarben),
+plus eine optionale Erinnerung.
+
+### Daten
+
+Die Termine sind aus den zwei offiziellen PDF-Kalendern für Bünde,
+Langenkamp (2026 und 2027) abgetippt und liegen als statisches JSON-Asset
+unter `app/src/main/assets/waste/buende_langenkamp.json` (130 Termine,
+je Datum eine Liste von Abfallarten – Biotonne und Altpapier fallen immer
+auf denselben Tag). Feiertagsbedingte Abweichungen aus dem Originalkalender
+sind exakt als eigene Termine übernommen, nicht aus einer Wiederholungsregel
+berechnet – die Kalender-PDFs weisen dafür zu viele Ausnahmen auf, um das
+sicher automatisch herzuleiten.
+
+Restabfall wird in beiden PDFs doppelt beschriftet ("4-wöchentlich" *und*
+"2-wöchentlich" auf denselben Terminen) – welcher Rhythmus für den
+tatsächlichen Haushalt gilt, lässt sich aus dem PDF allein nicht ablesen.
+Es sind daher alle 26 im Kalender gedruckten Restabfall-Termine im Jahr
+enthalten (die sichere Wahl: im schlimmsten Fall erinnert die App einen
+Abholzyklus zu oft, verpasst aber nie einen echten Termin).
+
+Neue Jahre lassen sich ergänzen, indem weitere Termine mit demselben Format
+in die `events`-Liste der JSON-Datei eingetragen werden – kein Code muss
+dafür angepasst werden.
+
+### Erinnerung & Benachrichtigung (auch bei geschlossener App)
+
+Die Erinnerung ist bewusst nicht an einen laufenden App-Prozess gebunden,
+sondern nutzt `AlarmManager` + einen in der Manifest registrierten
+`BroadcastReceiver` (`WasteAlarmReceiver`) – das funktioniert identisch zu
+einem Wecker/Kalender und feuert auch, wenn die App seit Tagen nicht
+geöffnet wurde:
+
+- Es ist immer nur **ein** exakter Alarm gleichzeitig geplant (für den
+  nächsten anstehenden Termin). Löst er aus, zeigt `WasteNotifier` die
+  Benachrichtigung und plant im selben Schritt sofort den nächsten Alarm
+  ("Ketten"-Prinzip, `WasteAlarmScheduler`) – das vermeidet unnötig viele
+  gleichzeitig im System hinterlegte Alarme.
+- Exakte Alarme werden vom System bei jedem Neustart des Geräts verworfen;
+  `WasteBootReceiver` (reagiert auf `BOOT_COMPLETED`) baut die Kette danach
+  automatisch wieder auf.
+- Zeitpunkt ist wählbar (Standard 18:00 Uhr, am Vorabend des Abholtags –
+  die Tonnen müssen laut Kalender bereits um 6:00 Uhr am Straßenrand
+  stehen, ein Erinnerungszeitpunkt am Morgen selbst wäre zu spät).
+- Benötigt die Berechtigungen `POST_NOTIFICATIONS` (Android 13+) und
+  `SCHEDULE_EXACT_ALARM`; beide werden erst angefragt, wenn die Erinnerung
+  in der App eingeschaltet wird, nicht schon beim App-Start.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -287,6 +340,11 @@ app/src/main/java/com/oliver/zylka/
 │       ├── Discovery.kt            # Ein Fund-Dokument (wer/was/wann/wo)
 │       ├── DiscoveryRepository.kt  # Firestore: Fund-Log je Land, live
 │       └── LocationHelper.kt       # Best-effort Standortabfrage
+│   └── waste/                 # Datenschicht des Abfallkalenders
+│       ├── WasteType.kt              # Restabfall/Biotonne/Altpapier/Gelber Sack
+│       ├── WasteEvent.kt             # Ein Abholtermin (Datum + Abfallarten)
+│       ├── WasteCalendarRepository.kt  # Lädt assets/waste/*.json
+│       └── WastePrefs.kt             # Erinnerung an/aus + Uhrzeit (SharedPreferences)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -296,6 +354,13 @@ app/src/main/java/com/oliver/zylka/
 │   ├── KennzeichenMapView.kt        # Canvas-Custom-View, zeichnet die Karte
 │   ├── PlateRegionAdapter.kt        # RecyclerView-Adapter für die Listen
 │   └── HistoryAdapter.kt            # RecyclerView-Adapter für den Verlauf
+├── waste/                      # UI + Alarme des Abfallkalenders
+│   ├── WasteCalendarActivity.kt     # Übersicht + Erinnerungs-Einstellung
+│   ├── WasteEventAdapter.kt         # RecyclerView-Adapter für die Terminliste
+│   ├── WasteAlarmScheduler.kt       # Plant den jeweils nächsten exakten Alarm
+│   ├── WasteAlarmReceiver.kt        # Zeigt Benachrichtigung, plant Folgealarm
+│   ├── WasteBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
+│   └── WasteNotifier.kt             # Notification-Channel + Benachrichtigung
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

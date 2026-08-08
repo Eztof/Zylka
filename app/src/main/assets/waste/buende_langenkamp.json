@@ -1,0 +1,841 @@
+{
+  "street": "Bünde, Langenkamp",
+  "years": [
+    2026,
+    2027
+  ],
+  "events": [
+    {
+      "date": "2026-01-07",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-01-14",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-01-15",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-01-21",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-01-28",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-02-04",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-02-11",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-02-12",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-02-18",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-02-25",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-03-11",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-03-12",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-03-18",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-03-25",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-03-31",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-04-09",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-04-10",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-04-15",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-04-29",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-05-06",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-05-07",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-05-13",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-05-20",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-05-28",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-06-03",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-06-05",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-06-10",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-06-17",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-07-08",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-07-22",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-07-29",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-07-30",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-08-05",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-08-12",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-09-02",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-09-30",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-10-07",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-10-14",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-10-21",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-10-22",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-10-28",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-11-04",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-11-18",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-11-25",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-12-02",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-12-09",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-12-16",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2026-12-17",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2026-12-22",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2026-12-30",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-01-06",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-01-13",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-01-14",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-01-20",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-01-27",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-02-03",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-02-10",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-02-11",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-02-17",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-02-24",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-03-03",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-03-10",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-03-11",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-03-17",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-03-23",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-04-01",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-04-07",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-04-08",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-04-14",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-04-21",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-04-28",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-05-05",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-05-07",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-05-12",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-05-20",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-05-26",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-06-02",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-06-03",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-06-09",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-06-16",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-06-23",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-06-30",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-07-01",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-07-07",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-07-14",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-07-21",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-07-28",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-07-29",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-08-04",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-08-11",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-08-18",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-08-25",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-08-26",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-09-01",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-09-08",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-09-15",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-09-22",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-09-23",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-09-29",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-10-06",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-10-13",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-10-20",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-10-21",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-10-27",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-11-04",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-11-10",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-11-17",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-11-18",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-11-24",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-12-01",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-12-08",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-12-15",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    },
+    {
+      "date": "2027-12-16",
+      "types": [
+        "GELBER_SACK"
+      ]
+    },
+    {
+      "date": "2027-12-22",
+      "types": [
+        "RESTABFALL"
+      ]
+    },
+    {
+      "date": "2027-12-29",
+      "types": [
+        "BIOTONNE",
+        "ALTPAPIER"
+      ]
+    }
+  ]
+}

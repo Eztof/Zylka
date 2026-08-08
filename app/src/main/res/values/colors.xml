@@ -42,6 +42,12 @@
     <color name="map_discovered_partial">#7BCB9C</color>
     <color name="map_undiscovered">#D6DDD1</color>
 
+    <!-- Abfallkalender: an die echten Tonnenfarben angelehnt -->
+    <color name="waste_restabfall">#4A4A4A</color>
+    <color name="waste_biotonne">#7B4B2A</color>
+    <color name="waste_altpapier">#1E63B8</color>
+    <color name="waste_gelber_sack">#D9A400</color>
+
     <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>

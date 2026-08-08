@@ -19,6 +19,7 @@ import com.oliver.zylka.databinding.ActivityMainBinding
 import com.oliver.zylka.databinding.DialogUpdateProgressBinding
 import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
 import com.oliver.zylka.update.UpdateManager
+import com.oliver.zylka.waste.WasteCalendarActivity
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -55,6 +56,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.cardKennzeichen.setOnClickListener {
             startActivity(KennzeichenHomeActivity.intent(this))
+        }
+        binding.cardAbfallkalender.setOnClickListener {
+            startActivity(Intent(this, WasteCalendarActivity::class.java))
         }
 
         checkForUpdate()

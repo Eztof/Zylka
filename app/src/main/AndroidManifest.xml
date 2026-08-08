@@ -9,6 +9,12 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- Abfallkalender: Erinnerungen als Benachrichtigung, auch wenn die App
+         geschlossen ist. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -60,6 +66,22 @@
         <activity
             android:name=".kennzeichen.KennzeichenHistoryActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".waste.WasteCalendarActivity"
+            android:exported="false" />
+
+        <receiver
+            android:name=".waste.WasteAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".waste.WasteBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
