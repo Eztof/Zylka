@@ -2,6 +2,16 @@
 
 Android-App mit Anmeldung (Firebase Authentication) und Firestore als Datenbank.
 
+## Design
+
+Durchgängiges Material-3-Theme (`Theme.Zylka` in `res/values/themes.xml`,
+Markenfarben in `res/values/colors.xml`: Grün für Fortschritt/Sammeln, Amber
+als Akzent) mit einer eigenen `MaterialToolbar` auf jedem Screen statt der
+Standard-ActionBar. Wiederkehrende Bausteine wie Aktions-Kacheln
+(`item_action_card.xml`) und das Kennzeichen-Mini-Badge (`view_plate_badge.xml`,
+angelehnt an ein echtes Euro-Kennzeichen) sind als eigene, wiederverwendbare
+Layouts angelegt.
+
 ## Funktionsumfang (Stand jetzt)
 
 - Registrierung und Login per E-Mail/Passwort (`com.oliver.zylka.auth`)
@@ -32,15 +42,18 @@ Die Kachel **„Kennzeichen"** führt in `com.oliver.zylka.kennzeichen` (klassis
 Activities + XML-Layouts + ViewBinding, wie der Rest der App):
 
 - **Eintragen** (`KennzeichenEntryActivity`): Kürzel per Suche antippen und als
-  gefunden markieren.
+  gefunden markieren. Dabei wird - falls die Berechtigung erteilt wurde - der
+  aktuelle Standort mitgespeichert (siehe Datenmodell unten).
 - **Meine Sammlung** (`KennzeichenCollectionActivity`): alle Kürzel des gewählten
   Landes, entdeckt/nicht entdeckt, durchsuchbar, mit Fortschrittsbalken.
 - **Karte** (`KennzeichenMapActivity`): echte geografische Karte
   (`KennzeichenMapView`, eine `Canvas`-basierte Custom View), entdeckte Regionen
   werden eingefärbt.
-- **Globale Sammlung**: dieselbe Listenansicht, aber mit den Funden *aller*
+- **Gemeinsame Sammlung**: dieselbe Listenansicht, aber mit den Funden *aller*
   Spieler zusammen (jeder sammelt weiter für sich selbst; das ist eine
-  gemeinsame, read-only "was hat die Community schon gefunden"-Sicht).
+  gemeinsame, read-only "was hat die Gruppe schon gefunden"-Sicht).
+- **Verlauf** (`KennzeichenHistoryActivity`): Chronik aller Funde eines Landes -
+  wer hat wann was (und, falls vorhanden, wo) entdeckt.
 
 Auf `KennzeichenHomeActivity` lässt sich das Land wechseln (Chips: 🇩🇪 🇦🇹 🇨🇭 🇫🇷).
 
@@ -75,12 +88,38 @@ Die österreichische Zuordnung ist über die offizielle CSV automatisch abgeglic
 manuelle Korrektur wegen abweichender Schreibweisen zwischen den beiden
 Quelldatensätzen – bei Auffälligkeiten bitte prüfen.
 
-Firestore-Layout (siehe auch Abschnitt "Firestore-Regeln"):
+### Datenmodell (Firestore, live synchronisiert)
+
+Jeder Fund ist ein eigenes Dokument in der Collection `discoveries` (kein
+lokaler/Offline-Zustand - alles läuft über Firestore-Snapshot-Listener, die
+sich in Echtzeit aktualisieren, auch auf anderen Geräten):
 
 ```
-users/{uid}/discoveries/{countryId}   { codes: [String], updatedAt }   // persönlich
-globalDiscoveries/{countryId}         { codes: [String], updatedAt }   // alle Spieler
+discoveries/{autoId}
+{
+  country: "de",              // Länder-ID
+  code: "M",                  // Kennzeichen-Kürzel
+  regionName: "München",
+  uid: "…",                   // wer
+  userLabel: "Oliver",        // Anzeigename/E-Mail, denormalisiert fürs Anzeigen
+  discoveredAt: <Timestamp>,  // wann (serverseitig gesetzt)
+  latitude: 48.13,            // wo (optional, nur mit erteilter Standort-Berechtigung)
+  longitude: 11.58
+}
 ```
+
+Persönliche Sammlung, gemeinsame Sammlung und Karten-Fortschritt werden alle
+clientseitig aus einem einzigen Live-Listener je Land abgeleitet (`where
+country == …`, absichtlich ohne serverseitige Sortierung, damit kein
+zusätzlicher Composite-Index in der Firebase Console angelegt werden muss).
+Der Verlauf zeigt genau diesen Log, neueste zuerst. Ein Fund wird nur einmal
+pro Nutzer und Kürzel gezählt (erneutes Antippen eines schon gefundenen
+Kennzeichens legt keinen zweiten Log-Eintrag an).
+
+Der Standort wird best-effort über `LocationManager.getCurrentLocation(...)`
+abgefragt (Berechtigung `ACCESS_COARSE_LOCATION`/`ACCESS_FINE_LOCATION`, wird
+beim ersten Eintragen einmalig angefragt); ohne Berechtigung oder bei Timeout
+wird der Fund trotzdem gespeichert, nur ohne Koordinaten.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -129,20 +168,17 @@ match /app_config/{document} {
 }
 ```
 
-Für das Kennzeichen-Sammelspiel (persönliche Funde nur für den jeweiligen Nutzer,
-globale Funde für alle eingeloggten Nutzer lesbar und nur ergänzbar, nie
-löschbar/überschreibbar) – siehe auch `firestore.rules` im Repo-Root:
+Für das Kennzeichen-Sammelspiel (jeder eingeloggte Nutzer darf den Fund-Log
+lesen; anlegen darf man nur Funde, die auf einen selbst eingetragen sind;
+geändert oder gelöscht wird nie - der Log ist bewusst nur anhängbar) – siehe
+auch `firestore.rules` im Repo-Root:
 
 ```
-match /users/{userId}/discoveries/{country} {
-  allow read, write: if request.auth != null && request.auth.uid == userId;
-}
-
-match /globalDiscoveries/{country} {
+match /discoveries/{discoveryId} {
   allow read: if request.auth != null;
-  allow create: if request.auth != null;
-  allow update: if request.auth != null
-    && request.resource.data.codes.hasAll(resource.data.codes);
+  allow create: if request.auth != null
+    && request.resource.data.uid == request.auth.uid;
+  allow update, delete: if false;
 }
 ```
 
@@ -231,14 +267,18 @@ app/src/main/java/com/oliver/zylka/
 │       ├── PlateRegion.kt          # Ein Kennzeichen-Kürzel + Metadaten
 │       ├── CatalogRepository.kt    # Lädt assets/catalog/*.json
 │       ├── GeoShape.kt / GeoRepository.kt  # Lädt & parst assets/geo/*.geojson
-│       └── DiscoveryRepository.kt  # Firestore: persönliche + globale Funde
+│       ├── Discovery.kt            # Ein Fund-Dokument (wer/was/wann/wo)
+│       ├── DiscoveryRepository.kt  # Firestore: Fund-Log je Land, live
+│       └── LocationHelper.kt       # Best-effort Standortabfrage
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
 │   ├── KennzeichenCollectionActivity.kt
 │   ├── KennzeichenMapActivity.kt
+│   ├── KennzeichenHistoryActivity.kt   # Verlauf: wer hat wann was entdeckt
 │   ├── KennzeichenMapView.kt        # Canvas-Custom-View, zeichnet die Karte
-│   └── PlateRegionAdapter.kt        # RecyclerView-Adapter für die Listen
+│   ├── PlateRegionAdapter.kt        # RecyclerView-Adapter für die Listen
+│   └── HistoryAdapter.kt            # RecyclerView-Adapter für den Verlauf
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

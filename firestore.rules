@@ -8,20 +8,17 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Kennzeichen-Sammelspiel: persönliche Funde je Land, nur für den
-    // jeweiligen Nutzer lesbar/schreibbar.
-    match /users/{userId}/discoveries/{country} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Kennzeichen-Sammelspiel: gemeinsame "alle Spieler zusammen"-Funde je
-    // Land. Jeder eingeloggte Spieler darf lesen und Codes ergänzen
-    // (arrayUnion), aber nie welche entfernen oder das Dokument ersetzen.
-    match /globalDiscoveries/{country} {
+    // Kennzeichen-Sammelspiel: ein Dokument pro Fund (wer/was/wann/wo).
+    // Jeder eingeloggte Nutzer darf den ganzen Log lesen (persönliche und
+    // globale Fortschritte sowie der Verlauf werden clientseitig daraus
+    // abgeleitet). Anlegen darf man nur Funde, die auf einen selbst
+    // eingetragen sind; Ändern oder Löschen ist nicht vorgesehen - der Log
+    // ist bewusst nur anhängbar (Historie bleibt unverändert erhalten).
+    match /discoveries/{discoveryId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null
-        && request.resource.data.codes.hasAll(resource.data.codes);
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // Update-Prüfung: nur lesbar, Schreiben ausschließlich über die

@@ -1,61 +1,76 @@
 package com.oliver.zylka.data.kennzeichen
 
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
- * Firestore-backed storage for discovered Kennzeichen codes.
+ * Firestore-backed Log aller Funde im Kennzeichen-Sammelspiel.
  *
- * Layout:
- *  - users/{uid}/discoveries/{countryId}   { codes: [String], updatedAt }   (personal)
- *  - globalDiscoveries/{countryId}         { codes: [String], updatedAt }   (everyone, union)
+ * Ein Dokument pro Fund in der Collection `discoveries` (nicht ein
+ * aggregiertes Array wie zuvor) - so lässt sich später jederzeit
+ * nachvollziehen, wer wann welches Kennzeichen wo entdeckt hat.
+ * Persönliche und globale Fortschritte werden aus demselben Log abgeleitet
+ * (ein Live-Listener je Land reicht für beides plus die Chronik-Ansicht).
  *
- * Marking a code as found writes to both documents at once (via arrayUnion, which is
- * idempotent and safe under concurrent writes from many players).
+ * Firestore-Layout: `discoveries/{autoId}`
+ * { country, code, regionName, uid, userLabel, discoveredAt, latitude, longitude }
  */
 class DiscoveryRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
-    private fun personalDoc(uid: String, country: Country): DocumentReference =
-        db.collection("users").document(uid).collection("discoveries").document(country.id)
+    private val collection get() = db.collection("discoveries")
 
-    private fun globalDoc(country: Country): DocumentReference =
-        db.collection("globalDiscoveries").document(country.id)
-
-    fun personalCodes(uid: String, country: Country): Flow<Set<String>> =
-        observeCodes(personalDoc(uid, country))
-
-    fun globalCodes(country: Country): Flow<Set<String>> =
-        observeCodes(globalDoc(country))
-
-    private fun observeCodes(ref: DocumentReference): Flow<Set<String>> = callbackFlow {
-        val registration = ref.addSnapshotListener { snapshot, _ ->
-            @Suppress("UNCHECKED_CAST")
-            val codes = (snapshot?.get("codes") as? List<String>)?.toSet() ?: emptySet()
-            trySend(codes)
-        }
+    /** Alle Funde für ein Land, neueste zuerst - Quelle für Fortschritt, Karte & Verlauf. */
+    fun observeDiscoveries(country: Country): Flow<List<Discovery>> = callbackFlow {
+        val registration = collection
+            .whereEqualTo("country", country.id)
+            .addSnapshotListener { snapshot, _ ->
+                val discoveries = snapshot?.documents.orEmpty()
+                    .mapNotNull { it.toDiscoveryOrNull() }
+                    .sortedByDescending { it.discoveredAt?.time ?: 0L }
+                trySend(discoveries)
+            }
         awaitClose { registration.remove() }
     }
 
-    suspend fun markDiscovered(uid: String, country: Country, code: String) {
-        val update = mapOf(
-            "codes" to FieldValue.arrayUnion(code),
-            "updatedAt" to FieldValue.serverTimestamp(),
+    suspend fun recordDiscovery(
+        uid: String,
+        userLabel: String,
+        region: PlateRegion,
+        latitude: Double?,
+        longitude: Double?,
+    ) {
+        val data = hashMapOf(
+            "country" to region.country.id,
+            "code" to region.code,
+            "regionName" to region.name,
+            "uid" to uid,
+            "userLabel" to userLabel,
+            "discoveredAt" to FieldValue.serverTimestamp(),
+            "latitude" to latitude,
+            "longitude" to longitude,
         )
-        personalDoc(uid, country).set(update, SetOptions.merge()).await()
-        globalDoc(country).set(update, SetOptions.merge()).await()
+        collection.add(data).await()
     }
 
-    suspend fun removeDiscovered(uid: String, country: Country, code: String) {
-        // Only removes from the personal list - the global "someone has found this" stays true.
-        personalDoc(uid, country).set(
-            mapOf("codes" to FieldValue.arrayRemove(code)),
-            SetOptions.merge(),
-        ).await()
+    private fun com.google.firebase.firestore.DocumentSnapshot.toDiscoveryOrNull(): Discovery? {
+        val country = getString("country") ?: return null
+        val code = getString("code") ?: return null
+        val regionName = getString("regionName") ?: return null
+        val uid = getString("uid") ?: return null
+        return Discovery(
+            id = id,
+            country = country,
+            code = code,
+            regionName = regionName,
+            uid = uid,
+            userLabel = getString("userLabel") ?: uid,
+            discoveredAt = getTimestamp("discoveredAt")?.toDate(),
+            latitude = getDouble("latitude"),
+            longitude = getDouble("longitude"),
+        )
     }
 }

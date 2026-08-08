@@ -1,17 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="card_stroke">#FFE0E0E0</color>
+    <!-- Marke: gedecktes Grün (Fortschritt/Sammeln) + Amber-Akzent (Fund/Highlight). -->
+    <color name="brand_primary">#0B6E4F</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_primary_container">#B9F1CE</color>
+    <color name="brand_on_primary_container">#00210F</color>
+
+    <color name="brand_secondary">#B26A00</color>
+    <color name="brand_on_secondary">#FFFFFF</color>
+    <color name="brand_secondary_container">#FFDDB0</color>
+    <color name="brand_on_secondary_container">#3A1F00</color>
+
+    <color name="brand_tertiary">#3E5FA0</color>
+    <color name="brand_on_tertiary">#FFFFFF</color>
+    <color name="brand_tertiary_container">#D8E2FF</color>
+    <color name="brand_on_tertiary_container">#001A41</color>
+
+    <color name="brand_background">#F7F8F3</color>
+    <color name="brand_on_background">#191D18</color>
+    <color name="brand_surface">#FFFFFF</color>
+    <color name="brand_on_surface">#191D18</color>
+    <color name="brand_surface_variant">#DEE5D9</color>
+    <color name="brand_on_surface_variant">#424940</color>
+    <color name="brand_outline">#72796F</color>
+    <color name="brand_outline_variant">#C2C9BD</color>
+
+    <color name="brand_error">#BA1A1A</color>
+    <color name="brand_on_error">#FFFFFF</color>
+    <color name="brand_error_container">#FFDAD6</color>
+    <color name="brand_on_error_container">#410002</color>
 
     <!-- Kennzeichen-Sammelspiel -->
-    <color name="plate_found_background">#FFE3F2E1</color>
-    <color name="map_discovered">#FF2E7D32</color>
-    <color name="map_discovered_partial">#FF9CCC9E</color>
-    <color name="map_undiscovered">#FFD9DBD6</color>
+    <color name="plate_found_background">@color/brand_primary_container</color>
+    <!-- Mini-Kennzeichen-Badge (angelehnt an ein echtes Euro-Kennzeichen). -->
+    <color name="plate_badge_background">#FFFFFF</color>
+    <color name="plate_badge_border">#1B1B1B</color>
+    <color name="plate_badge_text">#1B1B1B</color>
+    <color name="plate_badge_stripe">#003399</color>
+    <color name="plate_badge_stripe_text">#FFFFFF</color>
+    <color name="map_discovered">@color/brand_primary</color>
+    <color name="map_discovered_partial">#7BCB9C</color>
+    <color name="map_undiscovered">#D6DDD1</color>
+
+    <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="card_stroke">#DDE3D8</color>
 </resources>

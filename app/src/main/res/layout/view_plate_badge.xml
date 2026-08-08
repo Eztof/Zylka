@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mini-Kennzeichen-Badge, angelehnt an ein echtes Euro-Kennzeichen: blauer
+     Streifen mit Länderkürzel + weißes Feld mit dem Unterscheidungszeichen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="34dp"
+    android:background="@drawable/bg_plate_badge"
+    android:clipToOutline="true"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/text_plate_country"
+        android:layout_width="18dp"
+        android:layout_height="match_parent"
+        android:background="@color/plate_badge_stripe"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="@color/plate_badge_stripe_text"
+        android:textSize="8sp"
+        android:textStyle="bold"
+        tools:text="D" />
+
+    <TextView
+        android:id="@+id/text_plate_code"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="10dp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="@color/plate_badge_text"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="M" />
+
+</LinearLayout>
