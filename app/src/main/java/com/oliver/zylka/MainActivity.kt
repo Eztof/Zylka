@@ -19,6 +19,7 @@ import com.oliver.zylka.data.UpdateRepository
 import com.oliver.zylka.databinding.ActivityMainBinding
 import com.oliver.zylka.databinding.DialogUpdateProgressBinding
 import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
+import com.oliver.zylka.notenspiegel.NotenspiegelActivity
 import com.oliver.zylka.update.UpdateManager
 import com.oliver.zylka.waste.WasteCalendarActivity
 import kotlinx.coroutines.launch
@@ -61,6 +62,9 @@ class MainActivity : AppCompatActivity() {
         }
         binding.cardAbfallkalender.setOnClickListener {
             startActivity(Intent(this, WasteCalendarActivity::class.java))
+        }
+        binding.cardNotenspiegel.setOnClickListener {
+            startActivity(Intent(this, NotenspiegelActivity::class.java))
         }
 
         checkForUpdate()

@@ -73,6 +73,19 @@
     <string name="waste_reminder_time_evening_before">%1$s Uhr, am Vorabend</string>
     <string name="waste_date_format">EEE, d. MMMM yyyy</string>
 
+    <!-- Notenspiegelrechner -->
+    <string name="feature_notenspiegel">Notenspiegel</string>
+    <string name="notenspiegel_system_sechs_stufen">1–6</string>
+    <string name="notenspiegel_system_fuenfzehn_punkte">15–0</string>
+    <string name="notenspiegel_hint_total_points">Gesamtpunktzahl</string>
+    <string name="notenspiegel_points_range">%1$s – %2$s Punkte</string>
+    <string name="notenspiegel_action_settings">Einstellungen</string>
+    <string name="notenspiegel_settings_title">Schwellen einstellen</string>
+    <string name="notenspiegel_settings_percent_suffix">%</string>
+    <string name="notenspiegel_settings_save">Speichern</string>
+    <string name="notenspiegel_settings_saved">Gespeichert</string>
+    <string name="notenspiegel_settings_reset">Zurücksetzen</string>
+
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>
     <string name="update_message">Version %1$s ist verfügbar. Jetzt herunterladen und installieren?</string>
