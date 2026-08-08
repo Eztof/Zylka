@@ -8,4 +8,10 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="card_stroke">#FFE0E0E0</color>
+
+    <!-- Kennzeichen-Sammelspiel -->
+    <color name="plate_found_background">#FFE3F2E1</color>
+    <color name="map_discovered">#FF2E7D32</color>
+    <color name="map_discovered_partial">#FF9CCC9E</color>
+    <color name="map_undiscovered">#FFD9DBD6</color>
 </resources>

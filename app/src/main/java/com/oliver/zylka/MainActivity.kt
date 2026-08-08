@@ -17,6 +17,7 @@ import com.oliver.zylka.data.UpdateInfo
 import com.oliver.zylka.data.UpdateRepository
 import com.oliver.zylka.databinding.ActivityMainBinding
 import com.oliver.zylka.databinding.DialogUpdateProgressBinding
+import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
 import com.oliver.zylka.update.UpdateManager
 import kotlinx.coroutines.launch
 
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         binding.textWelcome.text = getString(R.string.welcome_message, user.email)
 
         binding.cardKennzeichen.setOnClickListener {
-            Toast.makeText(this, R.string.feature_coming_soon, Toast.LENGTH_SHORT).show()
+            startActivity(KennzeichenHomeActivity.intent(this))
         }
 
         checkForUpdate()
