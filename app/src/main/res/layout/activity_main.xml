@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/brand_background"
@@ -24,23 +23,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="20dp">
-
-            <TextView
-                android:id="@+id/text_welcome"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                android:textColor="@color/brand_on_background"
-                tools:text="Willkommen, du@example.com!" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="24dp"
-                android:text="@string/main_subtitle"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/brand_on_surface_variant" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_kennzeichen"
@@ -73,28 +55,14 @@
                             app:tint="@color/brand_on_primary_container" />
                     </com.google.android.material.card.MaterialCardView>
 
-                    <LinearLayout
+                    <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/feature_kennzeichen"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textColor="@color/brand_on_surface" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/feature_kennzeichen_subtitle"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
-                            android:textColor="@color/brand_on_surface_variant" />
-                    </LinearLayout>
+                        android:text="@string/feature_kennzeichen"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textColor="@color/brand_on_surface" />
 
                     <ImageView
                         android:layout_width="20dp"

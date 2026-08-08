@@ -22,15 +22,6 @@
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
             android:textColor="@color/brand_on_background" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_horizontal"
-            android:text="@string/register_subtitle"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="@color/brand_on_surface_variant" />
-
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/input_layout_email"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -128,7 +119,7 @@
             android:gravity="center_horizontal"
             android:minHeight="48dp"
             android:padding="4dp"
-            android:text="@string/prompt_have_account"
+            android:text="@string/action_login"
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="@color/brand_primary" />
 

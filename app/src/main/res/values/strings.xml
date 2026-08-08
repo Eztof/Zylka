@@ -3,12 +3,10 @@
 
     <!-- Login -->
     <string name="login_title">Anmelden</string>
-    <string name="login_subtitle">Schön, dass du wieder da bist.</string>
     <string name="hint_email">E-Mail-Adresse</string>
     <string name="hint_password">Passwort</string>
     <string name="action_login">Anmelden</string>
     <string name="action_forgot_password">Passwort vergessen?</string>
-    <string name="prompt_no_account">Noch kein Konto? Jetzt registrieren</string>
     <string name="error_email_required">Bitte E-Mail-Adresse eingeben</string>
     <string name="error_password_required">Bitte Passwort eingeben</string>
     <string name="error_login_invalid_user">Kein Konto mit dieser E-Mail-Adresse gefunden.</string>
@@ -17,21 +15,15 @@
 
     <!-- Register -->
     <string name="register_title">Konto erstellen</string>
-    <string name="register_subtitle">Leg los und sammle mit uns Kennzeichen.</string>
     <string name="hint_password_confirm">Passwort wiederholen</string>
     <string name="action_register">Registrieren</string>
-    <string name="prompt_have_account">Schon ein Konto? Jetzt anmelden</string>
     <string name="error_password_too_short">Das Passwort muss mindestens 6 Zeichen haben</string>
     <string name="error_passwords_not_matching">Die Passwörter stimmen nicht überein</string>
     <string name="error_email_in_use">Für diese E-Mail-Adresse existiert bereits ein Konto.</string>
 
     <!-- Main -->
-    <string name="welcome_message">Willkommen, %1$s!</string>
-    <string name="main_subtitle">Wähle ein Spiel, um loszulegen.</string>
     <string name="action_logout">Abmelden</string>
     <string name="feature_kennzeichen">Kennzeichen</string>
-    <string name="feature_kennzeichen_subtitle">Sammle Kennzeichen aus Deutschland, Österreich, der Schweiz und Frankreich</string>
-    <string name="feature_coming_soon">Diese Funktion kommt bald.</string>
 
     <!-- Kennzeichen-Sammelspiel: Startseite -->
     <string name="kennzeichen_home_title">Kennzeichen sammeln</string>
@@ -39,15 +31,10 @@
     <string name="kennzeichen_progress_global">Gemeinsame Sammlung</string>
     <string name="kennzeichen_actions_label">Was möchtest du tun?</string>
     <string name="kennzeichen_action_entry_title">Kennzeichen eintragen</string>
-    <string name="kennzeichen_action_entry_subtitle">Neuen Fund erfassen</string>
     <string name="kennzeichen_action_collection_title">Meine Sammlung</string>
-    <string name="kennzeichen_action_collection_subtitle">Fortschritt und alle Kennzeichen ansehen</string>
     <string name="kennzeichen_action_map_title">Karte</string>
-    <string name="kennzeichen_action_map_subtitle">Deine Funde auf der Landkarte</string>
     <string name="kennzeichen_action_global_title">Gemeinsame Sammlung</string>
-    <string name="kennzeichen_action_global_subtitle">Was ihr zusammen schon gefunden habt</string>
     <string name="kennzeichen_action_history_title">Verlauf</string>
-    <string name="kennzeichen_action_history_subtitle">Wer hat wann was entdeckt</string>
 
     <!-- Kennzeichen-Sammelspiel: Eintragen -->
     <string name="kennzeichen_entry_title">%1$s eintragen</string>
@@ -71,7 +58,6 @@
     <string name="kennzeichen_outremer_title">Französische Überseegebiete</string>
 
     <!-- Kennzeichen-Sammelspiel: Verlauf -->
-    <string name="kennzeichen_history_empty">Noch keine Funde – leg los und trag dein erstes Kennzeichen ein!</string>
     <string name="kennzeichen_history_you">Du</string>
     <string name="kennzeichen_history_meta">von %1$s · %2$s</string>
     <string name="kennzeichen_history_just_now">gerade eben</string>

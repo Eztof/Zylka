@@ -13,41 +13,14 @@
         android:orientation="vertical"
         android:padding="28dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_gravity="center_horizontal"
-            app:cardBackgroundColor="@color/brand_primary_container"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="center"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_directions_car"
-                app:tint="@color/brand_on_primary_container" />
-        </com.google.android.material.card.MaterialCardView>
-
         <TextView
             android:id="@+id/text_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
             android:gravity="center_horizontal"
             android:text="@string/login_title"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
             android:textColor="@color/brand_on_background" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_horizontal"
-            android:text="@string/login_subtitle"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="@color/brand_on_surface_variant" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/input_layout_email"
@@ -140,7 +113,7 @@
             android:gravity="center_horizontal"
             android:minHeight="48dp"
             android:padding="4dp"
-            android:text="@string/prompt_no_account"
+            android:text="@string/action_register"
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="@color/brand_primary" />
 

@@ -32,30 +32,15 @@
                 app:tint="@color/brand_on_primary_container" />
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/text_action_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
             android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/text_action_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="@color/brand_on_surface"
-                tools:text="Kennzeichen eintragen" />
-
-            <TextView
-                android:id="@+id/text_action_subtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/brand_on_surface_variant"
-                tools:text="Neuen Fund erfassen" />
-        </LinearLayout>
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="@color/brand_on_surface"
+            tools:text="Kennzeichen eintragen" />
 
         <ImageView
             android:layout_width="18dp"
