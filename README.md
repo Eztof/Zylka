@@ -47,8 +47,12 @@ Activities + XML-Layouts + ViewBinding, wie der Rest der App):
 - **Meine Sammlung** (`KennzeichenCollectionActivity`): alle Kürzel des gewählten
   Landes, entdeckt/nicht entdeckt, durchsuchbar, mit Fortschrittsbalken.
 - **Karte** (`KennzeichenMapActivity`): echte geografische Karte
-  (`KennzeichenMapView`, eine `Canvas`-basierte Custom View), entdeckte Regionen
-  werden eingefärbt.
+  (`KennzeichenMapView`, eine `Canvas`-basierte Custom View), zoom- und
+  schwenkbar (Pinch-to-Zoom, Doppeltipp, Ein-Finger-Schwenk sobald gezoomt),
+  entdeckte Regionen werden eingefärbt. Antippen einer Region zeigt einen
+  Dialog mit allen ihren Kennzeichen-Kürzeln und - wo bereits gefunden - wer
+  es wann entdeckt hat. Für Deutschland sind das die echten ~400
+  Landkreis-/kreisfreie-Stadt-Grenzen (nicht nur Bundesländer).
 - **Gemeinsame Sammlung**: dieselbe Listenansicht, aber mit den Funden *aller*
   Spieler zusammen (jeder sammelt weiter für sich selbst; das ist eine
   gemeinsame, read-only "was hat die Gruppe schon gefunden"-Sicht).
@@ -57,31 +61,44 @@ Activities + XML-Layouts + ViewBinding, wie der Rest der App):
 
 Auf `KennzeichenHomeActivity` lässt sich das Land wechseln (Chips: 🇩🇪 🇦🇹 🇨🇭 🇫🇷).
 
-### Datenquellen & Umfang (v1)
+### Datenquellen & Umfang
 
 | Land | Sammel-Einheit | Anzahl Codes | Karte |
 |---|---|---|---|
-| 🇩🇪 Deutschland | Unterscheidungszeichen (Landkreis/kreisfreie Stadt), inkl. seit 2012 wieder zugelassener historischer Kürzel | 688 | 16 Bundesländer, eingefärbt nach Fortschritt ihrer Kreise (siehe Einschränkung unten) |
+| 🇩🇪 Deutschland | Unterscheidungszeichen (Landkreis/kreisfreie Stadt), inkl. seit 2012 wieder zugelassener historischer Kürzel | 714 | echte Grenzen aller 402 Landkreise/kreisfreien Städte |
 | 🇦🇹 Österreich | Bezirkskennzeichen | 97 | echte Bezirksgrenzen (94 davon mit Geometrie) |
 | 🇨🇭 Schweiz | Kantonskürzel | 26 | echte Kantonsgrenzen |
 | 🇫🇷 Frankreich | Département-Nummer (inkl. Übersee-Départements) | 101 | echte Département-Grenzen (Übersee als Kachel-Liste) |
 
-Quellen: [openpotato/kfz-kennzeichen](https://github.com/openpotato/kfz-kennzeichen) (DE/AT/CH-Zuordnung),
+Quellen: [openpotato/kfz-kennzeichen](https://github.com/openpotato/kfz-kennzeichen) (DE/AT/CH-Kürzel↔Ort-Zuordnung),
+[m-ad/geofeatures-ags-germany](https://github.com/m-ad/geofeatures-ags-germany) (DE-Landkreisumrisse, 402 Polygone),
 [gregoiredavid/france-geojson](https://github.com/gregoiredavid/france-geojson) (FR-Umrisse),
-[isellsoap/deutschlandGeoJSON](https://github.com/isellsoap/deutschlandGeoJSON) (DE-Bundesländer-Umrisse),
 [ginseng666/GeoJSON-TopoJSON-Austria](https://github.com/ginseng666/GeoJSON-TopoJSON-Austria) (AT-Bezirksumrisse),
 [d-qn/swiss-maps](https://github.com/d-qn/swiss-maps) (CH-Kantonsumrisse). Alle Rohdaten liegen als
 GeoJSON unter `app/src/main/assets/geo/` bzw. als JSON-Kataloge unter
 `app/src/main/assets/catalog/` und lassen sich dort direkt korrigieren/erweitern.
 
-**Bekannte Einschränkung:** Für Deutschland gibt es (noch) keine Landkreis-genaue
-Karte – eine zuverlässige Zuordnung aller ~400 Landkreis-Umrisse zu ihrem
-Kennzeichen-Kürzel war aus den frei verfügbaren Geodaten nicht mit ausreichender
-Sicherheit automatisiert herstellbar. Die Karte zeigt daher vorerst die 16
-Bundesländer, eingefärbt nach dem Anteil ihrer entdeckten Kreis-Kennzeichen. Das
-Sammeln selbst funktioniert bereits auf voller Landkreis-Ebene (Eintragen, Liste,
-Fortschritt, global). Eine Landkreis-Karte ist als Ausbaustufe 2 vorgesehen,
-sobald eine verifizierte AGS↔Kennzeichen-Quelle eingebunden ist.
+**Deutschland-Kreiskarte:** `m-ad/geofeatures-ags-germany` liefert amtliche
+Landkreisgrenzen, aber keine verlässliche Kennzeichen-Zuordnung (das
+mitgelieferte `kfz`-Feld erwies sich stichprobenartig als falsch, z. B.
+"Böblingen" → "BL" statt korrekt "BB" - wird daher ignoriert). Die Zuordnung
+Landkreis↔Kennzeichen kommt stattdessen aus der `openpotato`-Liste: für jeden
+der 402 Landkreise wurde automatisiert (Namensabgleich mit Normalisierung,
+~98 % Trefferquote) plus einer manuell aufgelösten Restmenge (~15 Sonderfälle,
+z. B. Städte, die seit den 1970ern/2011 in einen Landkreis eingemeindet
+wurden, aber ihr Kennzeichen behalten haben, wie Mannheim→Rhein-Neckar-Kreis
+oder Greifswald→Vorpommern-Greifswald) eine vollständige, gegen mehrere
+unabhängige Quellen stichprobengeprüfte Zuordnung erstellt. Ein Landkreis kann
+mehrere gültige Kennzeichen haben (z. B. München: M, MU); die Karte färbt ihn
+voll ein, sobald *eines* davon gefunden wurde, und halb, wenn nur ein Teil der
+möglichen Kürzel gefunden wurde.
+
+Dabei fiel auch auf, dass 24 Kennzeichen (u. a. MA Mannheim, IN Ingolstadt, ER
+Erlangen, KO Koblenz, EF Erfurt, C Chemnitz) in der `openpotato`-Quelle
+fälschlich als "auslaufend" markiert waren, obwohl sie nachweislich weiterhin
+aktiv vergeben werden ("auslaufend" bezieht sich dort nur auf die historische
+Zulassungsbehörde, nicht auf das Kennzeichen selbst) - sie sind jetzt Teil des
+Katalogs (daher 714 statt vorher 688 deutsche Codes).
 
 Die österreichische Zuordnung ist über die offizielle CSV automatisch abgeglichen;
 4 von 97 Bezirken (Rust, Braunau, Salzburg-Umgebung, Leoben) brauchten eine

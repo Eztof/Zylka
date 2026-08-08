@@ -49,21 +49,12 @@
                     android:text="@string/kennzeichen_scope_global" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
-            <TextView
-                android:id="@+id/text_map_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/brand_on_surface_variant"
-                android:visibility="gone"
-                tools:text="Deutschland wird auf Bundesland-Ebene eingefärbt." />
-
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Zylka.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp">
+                android:layout_marginTop="14dp"
+                android:clipToOutline="true">
 
                 <com.oliver.zylka.kennzeichen.KennzeichenMapView
                     android:id="@+id/map_view"

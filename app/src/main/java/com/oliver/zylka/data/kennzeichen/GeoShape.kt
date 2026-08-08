@@ -4,14 +4,17 @@ package com.oliver.zylka.data.kennzeichen
 typealias LonLatRing = List<Pair<Double, Double>>
 
 /**
- * A region's outline on the map, matched to a [code] from the corresponding
- * [PlateRegion]. A region can be made of several polygons (e.g. islands); for map
- * shading purposes we only need the outer ring of each.
+ * A region's outline on the map, matched to one or more [codes] from the corresponding
+ * [PlateRegion]s - most countries have exactly one code per shape, but German Kreise can
+ * have several valid current Kennzeichen (revived historical codes). A region can be made
+ * of several polygons (e.g. islands); for map shading purposes we only need the outer ring
+ * of each.
  */
 data class GeoShape(
-    val code: String,
+    val codes: List<String>,
     val name: String,
     val polygons: List<LonLatRing>,
+    val state: String? = null,
 )
 
 data class GeoBounds(
