@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -74,7 +73,6 @@ class KennzeichenHistoryActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 discoveryRepository.observeDiscoveries(country).collect { discoveries ->
                     adapter.submitList(discoveries)
-                    binding.textEmpty.isVisible = discoveries.isEmpty()
                 }
             }
         }

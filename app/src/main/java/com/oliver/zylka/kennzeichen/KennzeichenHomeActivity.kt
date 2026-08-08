@@ -64,28 +64,23 @@ class KennzeichenHomeActivity : AppCompatActivity() {
         }
 
         setUpActionCard(
-            binding.cardEntry, R.drawable.ic_add_circle,
-            R.string.kennzeichen_action_entry_title, R.string.kennzeichen_action_entry_subtitle,
+            binding.cardEntry, R.drawable.ic_add_circle, R.string.kennzeichen_action_entry_title,
         ) { startActivity(KennzeichenEntryActivity.intent(this, country)) }
 
         setUpActionCard(
-            binding.cardCollection, R.drawable.ic_list,
-            R.string.kennzeichen_action_collection_title, R.string.kennzeichen_action_collection_subtitle,
+            binding.cardCollection, R.drawable.ic_list, R.string.kennzeichen_action_collection_title,
         ) { startActivity(KennzeichenCollectionActivity.intent(this, country, global = false)) }
 
         setUpActionCard(
-            binding.cardMap, R.drawable.ic_map,
-            R.string.kennzeichen_action_map_title, R.string.kennzeichen_action_map_subtitle,
+            binding.cardMap, R.drawable.ic_map, R.string.kennzeichen_action_map_title,
         ) { startActivity(KennzeichenMapActivity.intent(this, country)) }
 
         setUpActionCard(
-            binding.cardGlobal, R.drawable.ic_public,
-            R.string.kennzeichen_action_global_title, R.string.kennzeichen_action_global_subtitle,
+            binding.cardGlobal, R.drawable.ic_public, R.string.kennzeichen_action_global_title,
         ) { startActivity(KennzeichenCollectionActivity.intent(this, country, global = true)) }
 
         setUpActionCard(
-            binding.cardHistory, R.drawable.ic_history,
-            R.string.kennzeichen_action_history_title, R.string.kennzeichen_action_history_subtitle,
+            binding.cardHistory, R.drawable.ic_history, R.string.kennzeichen_action_history_title,
         ) { startActivity(KennzeichenHistoryActivity.intent(this, country)) }
 
         loadCountry()
@@ -130,12 +125,10 @@ class KennzeichenHomeActivity : AppCompatActivity() {
         card: ItemActionCardBinding,
         @androidx.annotation.DrawableRes icon: Int,
         @androidx.annotation.StringRes title: Int,
-        @androidx.annotation.StringRes subtitle: Int,
         onClick: () -> Unit,
     ) {
         card.iconAction.setImageResource(icon)
         card.textActionTitle.setText(title)
-        card.textActionSubtitle.setText(subtitle)
         card.root.setOnClickListener { onClick() }
     }
 

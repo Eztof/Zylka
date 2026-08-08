@@ -47,13 +47,11 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         updateManager = UpdateManager(this)
 
-        val user = authRepository.currentUser
-        if (user == null) {
+        if (authRepository.currentUser == null) {
             // Sicherheitsnetz: falls die Sitzung zwischenzeitlich ungültig wurde.
             goToLogin()
             return
         }
-        binding.textWelcome.text = getString(R.string.welcome_message, user.email)
 
         binding.cardKennzeichen.setOnClickListener {
             startActivity(KennzeichenHomeActivity.intent(this))
