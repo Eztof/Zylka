@@ -41,6 +41,7 @@ class KennzeichenCollectionActivity : AppCompatActivity() {
         global = intent.getBooleanExtra(KennzeichenHomeActivity.EXTRA_GLOBAL, false)
         binding = ActivityKennzeichenCollectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         title = getString(
             if (global) R.string.kennzeichen_collection_global_title else R.string.kennzeichen_collection_personal_title,
         )
@@ -67,16 +68,15 @@ class KennzeichenCollectionActivity : AppCompatActivity() {
             renderList()
         }
 
+        val uid = authRepository.currentUser?.uid
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                val flow = if (global) {
-                    discoveryRepository.globalCodes(country)
-                } else {
-                    val uid = authRepository.currentUser?.uid
-                    if (uid == null) return@repeatOnLifecycle else discoveryRepository.personalCodes(uid, country)
-                }
-                flow.collect { codes ->
-                    foundCodes = codes
+                discoveryRepository.observeDiscoveries(country).collect { discoveries ->
+                    foundCodes = if (global) {
+                        discoveries.map { it.code }.toSet()
+                    } else {
+                        discoveries.filter { it.uid == uid }.map { it.code }.toSet()
+                    }
                     renderList()
                 }
             }

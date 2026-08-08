@@ -43,6 +43,7 @@ class KennzeichenMapActivity : AppCompatActivity() {
         country = Country.fromId(intent.getStringExtra(KennzeichenHomeActivity.EXTRA_COUNTRY))
         binding = ActivityKennzeichenMapBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         title = getString(R.string.kennzeichen_map_title, country.displayName)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
@@ -69,21 +70,12 @@ class KennzeichenMapActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
+            val uid = authRepository.currentUser?.uid
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    discoveryRepository.globalCodes(country).collect { codes ->
-                        globalCache = codes
-                        render()
-                    }
-                }
-                val uid = authRepository.currentUser?.uid
-                if (uid != null) {
-                    launch {
-                        discoveryRepository.personalCodes(uid, country).collect { codes ->
-                            personalCache = codes
-                            render()
-                        }
-                    }
+                discoveryRepository.observeDiscoveries(country).collect { discoveries ->
+                    globalCache = discoveries.map { it.code }.toSet()
+                    personalCache = discoveries.filter { it.uid == uid }.map { it.code }.toSet()
+                    render()
                 }
             }
         }

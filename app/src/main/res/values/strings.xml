@@ -3,6 +3,7 @@
 
     <!-- Login -->
     <string name="login_title">Anmelden</string>
+    <string name="login_subtitle">Schön, dass du wieder da bist.</string>
     <string name="hint_email">E-Mail-Adresse</string>
     <string name="hint_password">Passwort</string>
     <string name="action_login">Anmelden</string>
@@ -16,6 +17,7 @@
 
     <!-- Register -->
     <string name="register_title">Konto erstellen</string>
+    <string name="register_subtitle">Leg los und sammle mit uns Kennzeichen.</string>
     <string name="hint_password_confirm">Passwort wiederholen</string>
     <string name="action_register">Registrieren</string>
     <string name="prompt_have_account">Schon ein Konto? Jetzt anmelden</string>
@@ -25,35 +27,55 @@
 
     <!-- Main -->
     <string name="welcome_message">Willkommen, %1$s!</string>
+    <string name="main_subtitle">Wähle ein Spiel, um loszulegen.</string>
     <string name="action_logout">Abmelden</string>
     <string name="feature_kennzeichen">Kennzeichen</string>
+    <string name="feature_kennzeichen_subtitle">Sammle Kennzeichen aus Deutschland, Österreich, der Schweiz und Frankreich</string>
     <string name="feature_coming_soon">Diese Funktion kommt bald.</string>
 
-    <!-- Kennzeichen-Sammelspiel -->
+    <!-- Kennzeichen-Sammelspiel: Startseite -->
     <string name="kennzeichen_home_title">Kennzeichen sammeln</string>
-    <string name="kennzeichen_progress_personal">Deine Sammlung</string>
-    <string name="kennzeichen_progress_global">Alle Spieler zusammen</string>
+    <string name="kennzeichen_progress_personal">Meine Sammlung</string>
+    <string name="kennzeichen_progress_global">Gemeinsame Sammlung</string>
+    <string name="kennzeichen_actions_label">Was möchtest du tun?</string>
     <string name="kennzeichen_action_entry_title">Kennzeichen eintragen</string>
-    <string name="kennzeichen_action_entry_subtitle">Ein neu entdecktes Kennzeichen erfassen</string>
+    <string name="kennzeichen_action_entry_subtitle">Neuen Fund erfassen</string>
     <string name="kennzeichen_action_collection_title">Meine Sammlung</string>
-    <string name="kennzeichen_action_collection_subtitle">Alle Kennzeichen – entdeckt oder nicht</string>
+    <string name="kennzeichen_action_collection_subtitle">Fortschritt und alle Kennzeichen ansehen</string>
     <string name="kennzeichen_action_map_title">Karte</string>
-    <string name="kennzeichen_action_map_subtitle">Deine entdeckten Regionen auf der Karte</string>
-    <string name="kennzeichen_action_global_title">Globale Sammlung</string>
-    <string name="kennzeichen_action_global_subtitle">Was alle Spieler zusammen schon gefunden haben</string>
-    <string name="kennzeichen_already_found">Schon entdeckt</string>
-    <string name="kennzeichen_search_hint">Kürzel oder Ort suchen, z. B. \"M\" oder \"München\"</string>
-    <string name="kennzeichen_only_missing">Nur fehlende zeigen</string>
-    <string name="kennzeichen_entry_title">Eintragen – %1$s</string>
-    <string name="kennzeichen_discovered_toast">%1$s – %2$s entdeckt!</string>
+    <string name="kennzeichen_action_map_subtitle">Deine Funde auf der Landkarte</string>
+    <string name="kennzeichen_action_global_title">Gemeinsame Sammlung</string>
+    <string name="kennzeichen_action_global_subtitle">Was ihr zusammen schon gefunden habt</string>
+    <string name="kennzeichen_action_history_title">Verlauf</string>
+    <string name="kennzeichen_action_history_subtitle">Wer hat wann was entdeckt</string>
+
+    <!-- Kennzeichen-Sammelspiel: Eintragen -->
+    <string name="kennzeichen_entry_title">%1$s eintragen</string>
+    <string name="kennzeichen_search_hint">Kürzel oder Ort suchen</string>
+    <string name="kennzeichen_already_found">Schon gefunden</string>
+    <string name="kennzeichen_already_found_toast">%1$s hast du schon gefunden.</string>
+    <string name="kennzeichen_discovered_toast">%1$s (%2$s) gefunden!</string>
+    <string name="kennzeichen_unknown_user">Unbekannt</string>
+
+    <!-- Kennzeichen-Sammelspiel: Sammlung -->
     <string name="kennzeichen_collection_personal_title">Meine Sammlung</string>
-    <string name="kennzeichen_collection_global_title">Globale Sammlung</string>
-    <string name="kennzeichen_progress_summary">%1$d / %2$d entdeckt</string>
-    <string name="kennzeichen_map_title">Karte – %1$s</string>
-    <string name="kennzeichen_map_germany_note">Deutschland wird auf Bundesland-Ebene eingefärbt (Anteil der entdeckten Kennzeichen je Bundesland) – die Landkreis-genaue Karte folgt in einer späteren Version.</string>
+    <string name="kennzeichen_collection_global_title">Gemeinsame Sammlung</string>
+    <string name="kennzeichen_only_missing">Nur Fehlende</string>
+    <string name="kennzeichen_progress_summary">%1$d von %2$d gefunden</string>
+
+    <!-- Kennzeichen-Sammelspiel: Karte -->
+    <string name="kennzeichen_map_title">%1$s – Karte</string>
+    <string name="kennzeichen_map_germany_note">Deutschland zeigt vorerst die Bundesländer, eingefärbt nach eurem Fortschritt in den jeweiligen Landkreisen. Die Landkreis-genaue Karte folgt in einer späteren Version.</string>
     <string name="kennzeichen_scope_personal">Meine Funde</string>
-    <string name="kennzeichen_scope_global">Alle Spieler</string>
-    <string name="kennzeichen_outremer_title">Übersee-Départements</string>
+    <string name="kennzeichen_scope_global">Alle zusammen</string>
+    <string name="kennzeichen_outremer_title">Französische Überseegebiete</string>
+
+    <!-- Kennzeichen-Sammelspiel: Verlauf -->
+    <string name="kennzeichen_history_empty">Noch keine Funde – leg los und trag dein erstes Kennzeichen ein!</string>
+    <string name="kennzeichen_history_you">Du</string>
+    <string name="kennzeichen_history_meta">von %1$s · %2$s</string>
+    <string name="kennzeichen_history_just_now">gerade eben</string>
+    <string name="kennzeichen_history_location">Mit Standort erfasst</string>
 
     <!-- Update -->
     <string name="update_title">Update verfügbar</string>

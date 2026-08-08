@@ -9,18 +9,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.chip.Chip
+import com.oliver.zylka.R
 import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.kennzeichen.CatalogRepository
 import com.oliver.zylka.data.kennzeichen.Country
+import com.oliver.zylka.data.kennzeichen.Discovery
 import com.oliver.zylka.data.kennzeichen.DiscoveryRepository
 import com.oliver.zylka.data.kennzeichen.PlateRegion
 import com.oliver.zylka.databinding.ActivityKennzeichenHomeBinding
+import com.oliver.zylka.databinding.ItemActionCardBinding
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
  * Landing screen of the Kennzeichen-Sammelspiel: pick a country, see progress, jump into
- * entering a find, browsing the collection, the map, or the shared global collection.
+ * entering a find, browsing the collection, the map, the shared collection, or the feed.
  */
 class KennzeichenHomeActivity : AppCompatActivity() {
 
@@ -37,16 +40,15 @@ class KennzeichenHomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityKennzeichenHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        title = getString(com.oliver.zylka.R.string.kennzeichen_home_title)
+        setSupportActionBar(binding.toolbar)
+        title = getString(R.string.kennzeichen_home_title)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         Country.entries.forEach { c ->
-            val chip = Chip(this).apply {
-                text = "${c.flagEmoji} ${c.displayName}"
-                isCheckable = true
-                id = android.view.View.generateViewId()
-                tag = c.id
-            }
+            val chip = layoutInflater.inflate(R.layout.item_country_chip, binding.chipGroupCountry, false) as Chip
+            chip.text = "${c.flagEmoji} ${c.displayName}"
+            chip.id = android.view.View.generateViewId()
+            chip.tag = c.id
             binding.chipGroupCountry.addView(chip)
         }
         (binding.chipGroupCountry.getChildAt(0) as Chip).isChecked = true
@@ -61,18 +63,30 @@ class KennzeichenHomeActivity : AppCompatActivity() {
             }
         }
 
-        binding.cardEntry.setOnClickListener {
-            startActivity(KennzeichenEntryActivity.intent(this, country))
-        }
-        binding.cardCollection.setOnClickListener {
-            startActivity(KennzeichenCollectionActivity.intent(this, country, global = false))
-        }
-        binding.cardMap.setOnClickListener {
-            startActivity(KennzeichenMapActivity.intent(this, country))
-        }
-        binding.cardGlobal.setOnClickListener {
-            startActivity(KennzeichenCollectionActivity.intent(this, country, global = true))
-        }
+        setUpActionCard(
+            binding.cardEntry, R.drawable.ic_add_circle,
+            R.string.kennzeichen_action_entry_title, R.string.kennzeichen_action_entry_subtitle,
+        ) { startActivity(KennzeichenEntryActivity.intent(this, country)) }
+
+        setUpActionCard(
+            binding.cardCollection, R.drawable.ic_list,
+            R.string.kennzeichen_action_collection_title, R.string.kennzeichen_action_collection_subtitle,
+        ) { startActivity(KennzeichenCollectionActivity.intent(this, country, global = false)) }
+
+        setUpActionCard(
+            binding.cardMap, R.drawable.ic_map,
+            R.string.kennzeichen_action_map_title, R.string.kennzeichen_action_map_subtitle,
+        ) { startActivity(KennzeichenMapActivity.intent(this, country)) }
+
+        setUpActionCard(
+            binding.cardGlobal, R.drawable.ic_public,
+            R.string.kennzeichen_action_global_title, R.string.kennzeichen_action_global_subtitle,
+        ) { startActivity(KennzeichenCollectionActivity.intent(this, country, global = true)) }
+
+        setUpActionCard(
+            binding.cardHistory, R.drawable.ic_history,
+            R.string.kennzeichen_action_history_title, R.string.kennzeichen_action_history_subtitle,
+        ) { startActivity(KennzeichenHistoryActivity.intent(this, country)) }
 
         loadCountry()
     }
@@ -91,37 +105,38 @@ class KennzeichenHomeActivity : AppCompatActivity() {
             regions = catalogRepository.regionsFor(country)
             binding.progressLoading.isVisible = false
             binding.groupProgress.isVisible = true
-            updateProgress(personalCount = 0, globalCount = 0)
+            updateProgress(emptyList())
 
             val uid = authRepository.currentUser?.uid
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    discoveryRepository.globalCodes(country).collect { codes ->
-                        updateProgress(globalCount = codes.size)
-                    }
-                }
-                if (uid != null) {
-                    launch {
-                        discoveryRepository.personalCodes(uid, country).collect { codes ->
-                            updateProgress(personalCount = codes.size)
-                        }
-                    }
+                discoveryRepository.observeDiscoveries(country).collect { discoveries ->
+                    updateProgress(discoveries, uid)
                 }
             }
         }
     }
 
-    private var lastPersonal = 0
-    private var lastGlobal = 0
-
-    private fun updateProgress(personalCount: Int? = null, globalCount: Int? = null) {
-        personalCount?.let { lastPersonal = it }
-        globalCount?.let { lastGlobal = it }
+    private fun updateProgress(discoveries: List<Discovery>, uid: String? = authRepository.currentUser?.uid) {
+        val personal = discoveries.filter { it.uid == uid }.map { it.code }.distinct().size
+        val global = discoveries.map { it.code }.distinct().size
         val total = regions.size.coerceAtLeast(1)
-        binding.progressPersonal.progress = (lastPersonal * 100 / total)
-        binding.textProgressPersonal.text = "$lastPersonal / ${regions.size}"
-        binding.progressGlobal.progress = (lastGlobal * 100 / total)
-        binding.textProgressGlobal.text = "$lastGlobal / ${regions.size}"
+        binding.progressPersonal.progress = (personal * 100 / total)
+        binding.textProgressPersonal.text = getString(R.string.kennzeichen_progress_summary, personal, regions.size)
+        binding.progressGlobal.progress = (global * 100 / total)
+        binding.textProgressGlobal.text = getString(R.string.kennzeichen_progress_summary, global, regions.size)
+    }
+
+    private fun setUpActionCard(
+        card: ItemActionCardBinding,
+        @androidx.annotation.DrawableRes icon: Int,
+        @androidx.annotation.StringRes title: Int,
+        @androidx.annotation.StringRes subtitle: Int,
+        onClick: () -> Unit,
+    ) {
+        card.iconAction.setImageResource(icon)
+        card.textActionTitle.setText(title)
+        card.textActionSubtitle.setText(subtitle)
+        card.root.setOnClickListener { onClick() }
     }
 
     companion object {
