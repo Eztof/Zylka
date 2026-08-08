@@ -1,5 +1,6 @@
 package com.oliver.zylka.kennzeichen
 
+import com.oliver.zylka.util.applyStatusBarTopInset
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -41,6 +42,7 @@ class KennzeichenHomeActivity : AppCompatActivity() {
         binding = ActivityKennzeichenHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.applyStatusBarTopInset()
         title = getString(R.string.kennzeichen_home_title)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 

@@ -1,5 +1,6 @@
 package com.oliver.zylka.kennzeichen
 
+import com.oliver.zylka.util.applyStatusBarTopInset
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -42,6 +43,7 @@ class KennzeichenCollectionActivity : AppCompatActivity() {
         binding = ActivityKennzeichenCollectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.applyStatusBarTopInset()
         title = getString(
             if (global) R.string.kennzeichen_collection_global_title else R.string.kennzeichen_collection_personal_title,
         )

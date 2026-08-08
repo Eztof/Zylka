@@ -1,5 +1,6 @@
 package com.oliver.zylka.waste
 
+import com.oliver.zylka.util.applyStatusBarTopInset
 import android.Manifest
 import android.app.AlarmManager
 import android.app.TimePickerDialog
@@ -48,6 +49,7 @@ class WasteCalendarActivity : AppCompatActivity() {
         binding = ActivityWasteCalendarBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.applyStatusBarTopInset()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         prefs = WastePrefs(this)
 

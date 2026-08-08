@@ -1,5 +1,6 @@
 package com.oliver.zylka.kennzeichen
 
+import com.oliver.zylka.util.applyStatusBarTopInset
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -55,6 +56,7 @@ class KennzeichenMapActivity : AppCompatActivity() {
         binding = ActivityKennzeichenMapBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.applyStatusBarTopInset()
         title = getString(R.string.kennzeichen_map_title, country.displayName)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
