@@ -1,5 +1,6 @@
 package com.oliver.zylka
 
+import com.oliver.zylka.util.applyStatusBarTopInset
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -46,6 +47,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.applyStatusBarTopInset()
         updateManager = UpdateManager(this)
 
         if (authRepository.currentUser == null) {
