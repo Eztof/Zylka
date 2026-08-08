@@ -52,10 +52,10 @@
 
     <!-- Kennzeichen-Sammelspiel: Karte -->
     <string name="kennzeichen_map_title">%1$s – Karte</string>
-    <string name="kennzeichen_map_germany_note">Deutschland zeigt vorerst die Bundesländer, eingefärbt nach eurem Fortschritt in den jeweiligen Landkreisen. Die Landkreis-genaue Karte folgt in einer späteren Version.</string>
     <string name="kennzeichen_scope_personal">Meine Funde</string>
     <string name="kennzeichen_scope_global">Alle zusammen</string>
     <string name="kennzeichen_outremer_title">Französische Überseegebiete</string>
+    <string name="kennzeichen_not_found_yet">noch nicht gefunden</string>
 
     <!-- Kennzeichen-Sammelspiel: Verlauf -->
     <string name="kennzeichen_history_you">Du</string>

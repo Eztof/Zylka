@@ -10,7 +10,7 @@ enum class Country(
     val assetFile: String,
     val geoFile: String?,
 ) {
-    GERMANY("de", "Deutschland", "🇩🇪", "D", "catalog/de.json", null),
+    GERMANY("de", "Deutschland", "🇩🇪", "D", "catalog/de.json", "geo/de_kreise.geojson"),
     AUSTRIA("at", "Österreich", "🇦🇹", "A", "catalog/at.json", "geo/at_bezirke.geojson"),
     SWITZERLAND("ch", "Schweiz", "🇨🇭", "CH", "catalog/ch.json", "geo/ch_kantone.geojson"),
     FRANCE("fr", "Frankreich", "🇫🇷", "F", "catalog/fr.json", "geo/fr_departements.geojson");

@@ -42,7 +42,16 @@ class GeoRepository(private val context: Context) {
                     }
                     else -> emptyList()
                 }
-                add(GeoShape(code = props.getString("code"), name = props.getString("name"), polygons = polygons))
+                val codesArray = props.getJSONArray("codes")
+                val codes = buildList { for (c in 0 until codesArray.length()) add(codesArray.getString(c)) }
+                add(
+                    GeoShape(
+                        codes = codes,
+                        name = props.getString("name"),
+                        polygons = polygons,
+                        state = props.optString("state").takeIf { it.isNotBlank() },
+                    ),
+                )
             }
         }
     }
