@@ -1,7 +1,6 @@
 package com.oliver.zylka.data.plants
 
-import kotlin.math.PI
-import kotlin.math.cbrt
+import kotlin.math.sqrt
 
 /** Eine stündliche Wetter-Messung/-Prognose: Referenzverdunstung ET0 (mm/h) und
  * Niederschlag (mm) für diese Stunde, an einem festen Zeitpunkt. */
@@ -11,7 +10,7 @@ data class HourlySample(
     val precipitationMm: Double,
 )
 
-/** Ergebnis der geometrischen Startkapazitäts-Berechnung aus dem Topfdurchmesser. */
+/** Ergebnis der geometrischen Startkapazitäts-Berechnung aus der Topf-Grundfläche. */
 data class CapacityEstimate(val kapazitaetMm: Double, val volumenLiter: Double)
 
 /** Vorratskurve (Zeitpunkt -> Vorrat in mm), aktueller Vorrat "jetzt" und der berechnete
@@ -33,7 +32,6 @@ object PlantWaterCalculator {
     /** Gießschwelle: unterhalb dieses Anteils der Kapazität muss wieder gegossen werden. */
     const val GIESSSCHWELLE_ANTEIL = 0.5
 
-    private const val UNTERE_OEFFNUNG_ANTEIL = 0.7
     private const val HOEHE_ANTEIL = 0.85
     private const val PFLANZENVERFUEGBARER_ANTEIL = 0.28
     private const val KALIBRIERUNGS_FAKTOR = 0.2
@@ -54,39 +52,24 @@ object PlantWaterCalculator {
         (vorratVorher - etTopf + regenMm * regenfaktor).coerceIn(0.0, kapazitaetMm)
 
     /**
-     * Topfvolumen als Kegelstumpf (obere Öffnung = [durchmesserCm], untere Öffnung ≈ 70 %
-     * davon, Höhe ≈ 0.85 × Durchmesser). Davon 28 % pflanzenverfügbares Wasser, umgerechnet
-     * auf mm über die (obere) Topf-Grundfläche - das ist der Startwert für
-     * `Pot.kapazitaetMm`/`kapazitaetStartwertMm`.
+     * Schätzt Kapazität und Volumen aus der Topf-Grundfläche ([grundflaecheCm2]) - bewusst
+     * flächenbasiert statt durchmesserbasiert, damit sowohl runde (π × r²) als auch eckige
+     * Töpfe (Länge × Breite) erfasst werden können. Die Tiefe lässt sich aus einer reinen
+     * Flächenangabe nicht ableiten, daher wird sie über eine charakteristische Kantenlänge
+     * (√Grundfläche) geschätzt: Höhe ≈ 0.85 × √Grundfläche, Topf als einfache Säule (kein
+     * Verjüngen mehr, das bei eckigen Töpfen ohnehin nicht allgemeingültig wäre). Davon 28 %
+     * pflanzenverfügbares Wasser, als Wasserhöhe (mm) ausgedrückt - das ist der Startwert für
+     * `Pot.kapazitaetMm`/`kapazitaetStartwertMm`. Bei einer Säule kürzt sich die Grundfläche
+     * dabei heraus: die Kapazität in mm hängt nur von der geschätzten Tiefe ab, nicht von der
+     * Fläche - genau wie ET0 selbst ist sie eine reine Tiefenangabe pro Fläche.
      */
-    fun startKapazitaet(durchmesserCm: Double): CapacityEstimate {
-        if (durchmesserCm <= 0.0) return CapacityEstimate(kapazitaetMm = 0.0, volumenLiter = 0.0)
-        val rObenM = durchmesserCm / 200.0
-        val rUntenM = rObenM * UNTERE_OEFFNUNG_ANTEIL
-        val hoeheM = (durchmesserCm / 100.0) * HOEHE_ANTEIL
-        // Kegelstumpf-Volumen: V = (π × h / 3) × (R² + R×r + r²)
-        val volumenM3 = (PI * hoeheM / 3.0) * (rObenM * rObenM + rObenM * rUntenM + rUntenM * rUntenM)
-        val volumenLiter = volumenM3 * 1000.0
-        val verfuegbarLiter = volumenLiter * PFLANZENVERFUEGBARER_ANTEIL
-        val grundflaecheM2 = PI * rObenM * rObenM
-        val kapazitaetMm = if (grundflaecheM2 > 0.0) (verfuegbarLiter / grundflaecheM2) else 0.0
+    fun startKapazitaet(grundflaecheCm2: Double): CapacityEstimate {
+        if (grundflaecheCm2 <= 0.0) return CapacityEstimate(kapazitaetMm = 0.0, volumenLiter = 0.0)
+        val kantenlaengeCm = sqrt(grundflaecheCm2)
+        val hoeheCm = kantenlaengeCm * HOEHE_ANTEIL
+        val volumenLiter = grundflaecheCm2 * hoeheCm / 1000.0
+        val kapazitaetMm = hoeheCm * 10.0 * PFLANZENVERFUEGBARER_ANTEIL
         return CapacityEstimate(kapazitaetMm = kapazitaetMm, volumenLiter = volumenLiter)
-    }
-
-    /**
-     * Umkehrung von [startKapazitaet]: welcher Durchmesser (cm) ergäbe bei gleicher
-     * Kegelstumpf-Annahme das angegebene Erdvolumen? Damit lässt sich in `PotEditActivity`
-     * wahlweise der Durchmesser messen ODER direkt das (z. B. auf der Verpackung
-     * angegebene) Topfvolumen in Litern eingeben - beide Felder rechnen sich ineinander um.
-     * volumenLiter = K × durchmesserCm³, also durchmesserCm = ∛(volumenLiter / K).
-     */
-    fun durchmesserFuerVolumen(volumenLiter: Double): Double {
-        if (volumenLiter <= 0.0) return 0.0
-        val k = 1.0 + UNTERE_OEFFNUNG_ANTEIL + UNTERE_OEFFNUNG_ANTEIL * UNTERE_OEFFNUNG_ANTEIL
-        // Aus startKapazitaet() algebraisch hergeleitete Konstante K, sodass
-        // volumenLiter = K × durchmesserCm³ (Herleitung siehe Kegelstumpf-Formel oben).
-        val kVolumen = PI * HOEHE_ANTEIL * k / 12000.0
-        return cbrt(volumenLiter / kVolumen)
     }
 
     /**

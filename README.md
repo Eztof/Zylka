@@ -243,11 +243,10 @@ selbst nach.
   Schwellenwert in %, Standard 50) direkt auf dem Screen: keine feste
   Uhrzeit, die Benachrichtigung feuert genau dann, wenn die Prognose eines
   Topfs den eingestellten Wert unterschreitet.
-- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser ODER
-  direkt das Volumen in Litern (beide Felder rechnen sich ineinander um,
-  mit sofort berechneter Kapazitäts-Vorschau), Standort, optionale Position
-  (sonst wird bei jeder Prognose der Gerätestandort verwendet), zugeordnete
-  Pflanzen.
+- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Grundfläche in cm²
+  (rund: π × r², eckig: Länge × Breite - mit sofort berechneter
+  Kapazitäts-Vorschau), Standort, optionale Position (sonst wird bei jeder
+  Prognose der Gerätestandort verwendet), zugeordnete Pflanzen.
 - **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Kategorie,
   Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag statt
   einzeln anzulegen).
@@ -264,7 +263,7 @@ berechnet:
 
 ```
 pots/{potId}
-  uid (wer angelegt hat), name, durchmesserCm, volumenLiter (berechnet),
+  uid (wer angelegt hat), name, grundflaecheCm2, volumenLiter (berechnet),
   standort: "innen" | "unterDach" | "frei",
   kapazitaetMm (kalibriert, Startwert berechnet),
   kapazitaetStartwertMm (eingefrorener Startwert, begrenzt die Kalibrierung),
@@ -310,16 +309,17 @@ startet der Vorrat wieder bei voller Kapazität; die Gießschwelle ist der in
 `PlantsHomeActivity` eingestellte Feuchte-Schwellenwert (Standard 50 % der
 Kapazität, per Schieberegler 20-80 % einstellbar).
 
-**Startwert der Kapazität.** Topfvolumen als Kegelstumpf (obere Öffnung =
-Durchmesser, untere Öffnung ≈ 70 % davon, Höhe ≈ 0.85 × Durchmesser), davon
-28 % pflanzenverfügbares Wasser, umgerechnet auf mm über die
-Topf-Grundfläche. Diese Umrechnung braucht die Grundfläche (nicht nur das
-Volumen), weil sich die Verdunstung auf die Erdoberfläche bezieht - ein
-flacher, breiter Topf trocknet bei gleichem Volumen schneller aus als ein
-schmaler, tiefer. `PotEditActivity` bietet deshalb wahlweise Durchmesser
-oder Volumen als Eingabe an; `durchmesserFuerVolumen()` rechnet ein
-eingegebenes Volumen mit derselben Kegelstumpf-Annahme in einen
-gleichwertigen Durchmesser um.
+**Startwert der Kapazität.** Eingabe ist die Topf-Grundfläche in cm² statt
+eines Durchmessers, damit sowohl runde als auch eckige Töpfe erfasst werden
+können (rund: π × r², eckig: Länge × Breite). Die Tiefe lässt sich aus einer
+reinen Flächenangabe nicht ableiten und wird über eine charakteristische
+Kantenlänge geschätzt (Höhe ≈ 0.85 × √Grundfläche, Topf als einfache Säule).
+Davon 28 % pflanzenverfügbares Wasser, als Wasserhöhe (mm) ausgedrückt.
+Wichtig: bei einer Säule kürzt sich die Grundfläche dabei heraus - die
+Kapazität in mm hängt nur von der geschätzten Tiefe ab, nicht von der
+Fläche, genau wie ET0 selbst eine reine Tiefenangabe pro Fläche ist. Die
+Fläche bestimmt aber das (informativ angezeigte) Volumen in Litern und geht
+über die geschätzte Tiefe indirekt in die Kapazität ein.
 
 **Prognose.** Das Modell läuft mit der Wetterreihe (Vergangenheit + Prognose)
 stündlich vorwärts, bis der Vorrat die Gießschwelle unterschreitet - das
@@ -357,7 +357,7 @@ Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
   gleichem `standort`-Wert sieht für das Modell identisch aus - das lässt
   sich nur indirekt über einen von Hand nachjustierten `standortfaktor`
   ausgleichen.
-- **Umtopfen und Wachstum brechen die Kalibrierung.** Ein neuer Durchmesser
+- **Umtopfen und Wachstum brechen die Kalibrierung.** Eine neue Grundfläche
   in `PotEditActivity` setzt `kapazitaetMm` bewusst auf den neu berechneten
   geometrischen Startwert zurück - die bisherige Selbstkalibrierung ist
   damit hinfällig und baut sich erst über die nächsten Gießvorgänge wieder

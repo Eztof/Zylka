@@ -151,11 +151,9 @@
     <string name="pot_edit_title_edit">Topf bearbeiten</string>
     <string name="pot_edit_hint_name">Name</string>
     <string name="pot_edit_label_groesse">Größe</string>
-    <string name="pot_edit_hint_durchmesser">Durchmesser</string>
-    <string name="pot_edit_suffix_cm">cm</string>
-    <string name="pot_edit_hint_volumen">Volumen</string>
-    <string name="pot_edit_suffix_liter">L</string>
-    <string name="pot_edit_groesse_caption">Durchmesser oben am Topf oder Volumen - eins reicht, der Rest wird umgerechnet. Nötig, weil die Verdunstung von der Erdoberfläche abhängt, nicht nur von der Literzahl.</string>
+    <string name="pot_edit_hint_grundflaeche">Grundfläche</string>
+    <string name="pot_edit_suffix_cm2">cm²</string>
+    <string name="pot_edit_groesse_caption">Fläche der Erdoberfläche oben im Topf. Rund: π × r² (r = halber Durchmesser). Eckig: Länge × Breite.</string>
     <string name="pot_edit_capacity_preview_empty">–</string>
     <string name="pot_edit_capacity_preview">Kapazität ≈ %1$s mm</string>
     <string name="pot_edit_label_standort">Standort</string>

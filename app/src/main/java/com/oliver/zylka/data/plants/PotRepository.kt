@@ -55,7 +55,7 @@ class PotRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIns
     private fun Pot.toMap(): Map<String, Any?> = mapOf(
         FIELD_UID to uid,
         "name" to name,
-        "durchmesserCm" to durchmesserCm,
+        "grundflaecheCm2" to grundflaecheCm2,
         "volumenLiter" to volumenLiter,
         "standort" to standort.id,
         "kapazitaetMm" to kapazitaetMm,
@@ -72,7 +72,7 @@ class PotRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIns
             id = id,
             uid = uid,
             name = getString("name") ?: "",
-            durchmesserCm = getDouble("durchmesserCm") ?: 0.0,
+            grundflaecheCm2 = getDouble("grundflaecheCm2") ?: 0.0,
             volumenLiter = getDouble("volumenLiter") ?: 0.0,
             standort = standort,
             kapazitaetMm = getDouble("kapazitaetMm") ?: 0.0,

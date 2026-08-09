@@ -15,7 +15,7 @@ data class Pot(
     val id: String = "",
     val uid: String = "",
     val name: String = "",
-    val durchmesserCm: Double = 0.0,
+    val grundflaecheCm2: Double = 0.0,
     val volumenLiter: Double = 0.0,
     val standort: Standort = Standort.FREI,
     val kapazitaetMm: Double = 0.0,
