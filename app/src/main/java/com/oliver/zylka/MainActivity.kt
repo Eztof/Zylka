@@ -21,6 +21,7 @@ import com.oliver.zylka.databinding.DialogUpdateProgressBinding
 import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
 import com.oliver.zylka.notenspiegel.NotenspiegelActivity
 import com.oliver.zylka.plants.PlantsHomeActivity
+import com.oliver.zylka.plants.SensorsActivity
 import com.oliver.zylka.update.UpdateManager
 import com.oliver.zylka.waste.WasteCalendarActivity
 import kotlinx.coroutines.launch
@@ -69,6 +70,9 @@ class MainActivity : AppCompatActivity() {
         }
         binding.cardPflanzen.setOnClickListener {
             startActivity(Intent(this, PlantsHomeActivity::class.java))
+        }
+        binding.cardSensors.setOnClickListener {
+            startActivity(SensorsActivity.intent(this))
         }
 
         checkForUpdate()

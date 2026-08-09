@@ -53,6 +53,11 @@
     <color name="plant_container">#8FD9A8</color>
     <color name="plant_on_container">#00390F</color>
 
+    <!-- Sensoren: eigener Violett-Ton für die Kachel-Ikone, damit sie sich von den vier
+         anderen Startseiten-Kacheln unterscheidet. -->
+    <color name="sensor_container">#E4DEFF</color>
+    <color name="sensor_on_container">#20005C</color>
+
     <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>

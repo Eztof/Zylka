@@ -220,9 +220,14 @@
 
     <!-- Pflanzen: Bluetooth-Datenanalysator (Rohdaten-Diagnose) -->
     <string name="sensor_diagnostic_title">Bluetooth-Diagnose</string>
-    <string name="sensor_diagnostic_caption">Alle BLE-Geräte in der Nähe mit rohen Werbedaten - zum Identifizieren eines Sensors.</string>
-    <string name="sensor_diagnostic_empty_hint">Noch kein Gerät gefunden. Ist Bluetooth am Sensor eingeschaltet und in der Nähe?</string>
+    <string name="sensor_diagnostic_caption">Alle empfangenen Rohpakete in der Nähe - zum Identifizieren eines Sensors.</string>
+    <string name="sensor_diagnostic_search_hint">Nach Name/Adresse filtern</string>
+    <string name="sensor_diagnostic_empty_hint">Noch kein Paket empfangen. Ist Bluetooth am Sensor eingeschaltet und in der Nähe?</string>
+    <string name="sensor_diagnostic_meta">%1$s · %2$d dBm</string>
     <string name="sensor_diagnostic_rssi">%1$d dBm</string>
     <string name="sensor_diagnostic_action_copy">Kopieren</string>
     <string name="sensor_diagnostic_copied">In Zwischenablage kopiert</string>
+    <string name="sensor_diagnostic_action_export">Exportieren</string>
+    <string name="sensor_diagnostic_export_empty">Nichts zu exportieren</string>
+    <string name="sensor_diagnostic_export_chooser_title">Sensordiagnose teilen</string>
 </resources>
