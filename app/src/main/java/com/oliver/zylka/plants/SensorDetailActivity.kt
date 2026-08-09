@@ -167,8 +167,16 @@ class SensorDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val history = bleScanner.readHistory(mac)
             binding.progressHistory.isVisible = false
-            if (history.isNullOrEmpty()) {
+            if (history == null) {
+                // Keine (vollständige) Antwort: Timeout, Verbindungsabbruch oder fehlende
+                // Characteristics - siehe SensorBleScanner.readHistory.
                 Toast.makeText(this@SensorDetailActivity, R.string.sensor_history_pull_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            if (history.isEmpty()) {
+                // Antwort kam vollständig an, aber kein einziger Datensatz war plausibel -
+                // anders als "keine Antwort", siehe SensorBleScanner.appendHistoryChunk.
+                Toast.makeText(this@SensorDetailActivity, R.string.sensor_history_pull_empty, Toast.LENGTH_SHORT).show()
                 return@launch
             }
             val intervalMillis = SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES * 60_000L

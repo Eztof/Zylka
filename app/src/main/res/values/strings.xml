@@ -220,6 +220,7 @@
     <string name="sensor_pull_failed">Kein Messwert empfangen</string>
     <string name="sensor_pull_success">Messwert aktualisiert</string>
     <string name="sensor_history_pull_failed">Keine Historie empfangen</string>
+    <string name="sensor_history_pull_empty">Antwort kam an, aber kein Wert war plausibel</string>
     <string name="sensor_history_pull_success">%1$d Messwerte aus der Historie importiert</string>
 
     <!-- Pflanzen: Bluetooth-Datenanalysator (Rohdaten-Diagnose) -->
