@@ -32,5 +32,29 @@ service cloud.firestore {
     match /notenspiegel_settings/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Pflanzen (Gießplaner): Töpfe und Pflanzen sind rein privat - anders als bei
+    // discoveries gibt es keine gemeinsame Sicht, jeder sieht nur die eigenen.
+    match /pots/{potId} {
+      allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+    match /plants/{plantId} {
+      allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Gieß-Log: append-only wie discoveries (nie update/delete), aber nur für den
+    // eigenen uid lesbar - kein gemeinsamer Log.
+    match /waterings/{wateringId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Wetter-Cache je Nutzer (Open-Meteo-Antworten, max. alle 3 Stunden neu abgerufen).
+    match /weather_cache/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
