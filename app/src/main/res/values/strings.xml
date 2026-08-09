@@ -99,4 +99,90 @@
     <string name="update_permission_hint">Bitte erlaube im nächsten Schritt die Installation von Apps aus dieser Quelle.</string>
     <string name="update_permission_denied">Ohne diese Berechtigung kann das Update nicht installiert werden.</string>
     <string name="update_download_failed">Update konnte nicht heruntergeladen werden.</string>
+
+    <!-- Pflanzen (Gießplaner) -->
+    <string name="feature_pflanzen">Pflanzen</string>
+
+    <!-- Gemeinsame Aktionen (Formulare) -->
+    <string name="action_save">Speichern</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_edit">Bearbeiten</string>
+
+    <!-- Standort (Pot) -->
+    <string name="standort_frei">Frei</string>
+    <string name="standort_unter_dach">Unter Dach</string>
+    <string name="standort_innen">Innen</string>
+
+    <!-- Pflanzenkategorie -->
+    <string name="plant_category_sukkulente">Sukkulente</string>
+    <string name="plant_category_mediterran">Mediterran</string>
+    <string name="plant_category_standard">Standard</string>
+    <string name="plant_category_durstig">Durstig</string>
+    <string name="plant_category_gemuese">Gemüse</string>
+
+    <!-- Gieß-Feedback -->
+    <string name="watering_feedback_ueberfaellig">Überfällig</string>
+    <string name="watering_feedback_passend">Passend</string>
+    <string name="watering_feedback_noch_feucht">War noch feucht</string>
+    <string name="watering_feedback_title">Wie war der Zeitpunkt für %1$s?</string>
+    <string name="watering_feedback_skip">Überspringen</string>
+
+    <!-- Pflanzen: Startseite -->
+    <string name="plants_reminder_title">Erinnerung</string>
+    <string name="plants_reminder_time">%1$s Uhr</string>
+    <string name="plants_empty_hint">Noch keine Töpfe angelegt. Über das Symbol oben rechts einen ersten Topf anlegen.</string>
+    <string name="plants_action_add_pot">Topf hinzufügen</string>
+    <string name="plants_no_plants_assigned">Keine Pflanzen zugeordnet</string>
+    <string name="plants_status_no_location">Kein Standort – keine Prognose</string>
+    <string name="plants_status_unknown">Keine Prognose möglich</string>
+    <string name="plants_status_water_now">Jetzt gießen</string>
+    <string name="plants_status_today">Heute gießen</string>
+    <string name="plants_status_due_in_days">Gießen in %1$d Tagen</string>
+    <string name="plants_action_watered">Gegossen</string>
+    <string name="plants_stale_weather_hint">Wetterdaten evtl. veraltet (kein aktueller Abruf möglich)</string>
+
+    <!-- Pflanzen: Benachrichtigung -->
+    <string name="plants_notification_title">%1$s gießen</string>
+    <string name="plants_notification_body">Der Wasservorrat ist niedrig.</string>
+
+    <!-- Pflanzen: Topf anlegen/bearbeiten -->
+    <string name="pot_edit_title_new">Neuer Topf</string>
+    <string name="pot_edit_title_edit">Topf bearbeiten</string>
+    <string name="pot_edit_hint_name">Name (z. B. „Kübel Terrasse")</string>
+    <string name="pot_edit_hint_durchmesser">Durchmesser</string>
+    <string name="pot_edit_suffix_cm">cm</string>
+    <string name="pot_edit_capacity_preview_empty">Durchmesser eingeben, um Volumen und Kapazität zu berechnen</string>
+    <string name="pot_edit_capacity_preview">≈ %1$s L Volumen · Kapazität %2$s mm</string>
+    <string name="pot_edit_label_standort">Standort</string>
+    <string name="pot_edit_hint_standortfaktor">Standortfaktor (kalibrierbar)</string>
+    <string name="pot_edit_label_position">Position (optional, sonst Gerätestandort)</string>
+    <string name="pot_edit_hint_latitude">Breitengrad</string>
+    <string name="pot_edit_hint_longitude">Längengrad</string>
+    <string name="pot_edit_action_use_location">Aktuellen Standort verwenden</string>
+    <string name="pot_edit_location_unavailable">Standort konnte nicht ermittelt werden.</string>
+    <string name="pot_edit_label_plants">Pflanzen in diesem Topf</string>
+    <string name="pot_edit_plants_save_first_hint">Wird beim Hinzufügen der ersten Pflanze automatisch gespeichert.</string>
+    <string name="pot_edit_action_add_plant">Pflanze hinzufügen</string>
+    <string name="pot_edit_error_required">Bitte Name und Durchmesser eingeben.</string>
+    <string name="pot_edit_delete_confirm">Diesen Topf mitsamt zugeordneter Pflanzen wirklich löschen? Der Gieß-Verlauf bleibt erhalten.</string>
+
+    <!-- Pflanzen: Pflanze anlegen/bearbeiten -->
+    <string name="plant_edit_title_new">Neue Pflanze</string>
+    <string name="plant_edit_title_edit">Pflanze bearbeiten</string>
+    <string name="plant_edit_hint_name">Name</string>
+    <string name="plant_edit_hint_species">Art (wissenschaftlich, optional)</string>
+    <string name="plant_edit_label_kategorie">Kategorie</string>
+    <string name="plant_edit_hint_kc_basis">Verdunstungsfaktor (kcBasis)</string>
+    <string name="plant_edit_hint_groessenfaktor">Größenfaktor</string>
+    <string name="plant_edit_error_name_required">Bitte einen Namen eingeben.</string>
+    <string name="plant_edit_delete_confirm">Diese Pflanze wirklich löschen?</string>
+
+    <!-- Pflanzen: Topf-Verlauf -->
+    <string name="pot_detail_status_summary">Vorrat: %1$d %%</string>
+    <string name="pot_detail_no_weather_hint">Keine Wetterdaten verfügbar – Kurve und Prognose können nicht berechnet werden.</string>
+    <string name="pot_detail_label_history">Verlauf</string>
+    <string name="pot_detail_history_empty">Noch nicht gegossen.</string>
+    <string name="watering_history_unknown_time">Zeitpunkt unbekannt</string>
+    <string name="watering_history_no_feedback">Kein Feedback</string>
 </resources>

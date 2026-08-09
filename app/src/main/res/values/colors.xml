@@ -48,6 +48,11 @@
     <color name="waste_altpapier">#1E63B8</color>
     <color name="waste_gelber_sack">#D9A400</color>
 
+    <!-- Pflanzen: eigenes, kräftigeres Grün für die Kachel-Ikone (brand_primary_container
+         ist schon durch die Kennzeichen-Kachel belegt). -->
+    <color name="plant_container">#8FD9A8</color>
+    <color name="plant_on_container">#00390F</color>
+
     <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>

@@ -33,8 +33,8 @@ Layouts angelegt.
   siehe Abschnitt "Neue Version veröffentlichen" weiter unten.
 - **Startbildschirm (`MainActivity`):** feste helle Darstellung (ignoriert
   den System-Dunkelmodus bewusst), "Abmelden" liegt im Menü oben rechts
-  (⋮), darunter Funktions-Kacheln: "Kennzeichen" (Sammelspiel), "Abfallkalender"
-  und "Notenspiegel" (alle drei siehe unten).
+  (⋮), darunter Funktions-Kacheln: "Kennzeichen" (Sammelspiel), "Abfallkalender",
+  "Notenspiegel" und "Pflanzen" (alle vier siehe unten).
 
 ## Kennzeichen-Sammelspiel
 
@@ -225,6 +225,141 @@ die **Punkte-Genauigkeit** umstellen - ganze Punkte oder halbe Punkte
 Firestore gespeichert (`notenspiegel_settings/{uid}`) - steht also auf
 jedem Gerät desselben Kontos zur Verfügung.
 
+## Pflanzen (Gießplaner)
+
+Die Kachel **„Pflanzen"** führt in `com.oliver.zylka.plants`
+(`PlantsHomeActivity`): pro **Topf** (nicht pro Pflanze - mehrere Pflanzen
+können sich einen Kübel teilen und werden in einem Vorgang gegossen) eine
+Vorhersage, wann wieder gegossen werden muss. Kein Bodenfeuchtesensor - die
+Prognose entsteht aus einem Wasserbilanzmodell auf Basis der Verdunstung
+(Wetterdaten) und kalibriert sich durch das tatsächliche Gießverhalten
+selbst nach.
+
+- **Startseite** (`PlantsHomeActivity`): alle Töpfe, sortiert nach
+  Dringlichkeit, mit Fortschrittsbalken (Restvorrat in %), "Gießen in X
+  Tagen" bzw. "Jetzt gießen" und einem Button "Gegossen". Danach ein kurzer,
+  überspringbarer Dialog zum Feedback (überfällig / passend / war noch
+  feucht) - siehe Selbstkalibrierung unten. Erinnerung (an/aus + Uhrzeit,
+  Standard 18:00) direkt auf dem Screen, technisch identisch zum
+  Abfallkalender (siehe dort).
+- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser (mit
+  sofort berechneter Volumen-/Kapazitäts-Vorschau), Standort, optionale
+  Position (sonst wird bei jeder Prognose der Gerätestandort verwendet),
+  zugeordnete Pflanzen.
+- **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Art
+  (wissenschaftlich, optional - wird nur gespeichert, nicht ausgewertet,
+  keine Artendatenbank-Anbindung), Kategorie, Größenfaktor.
+- **Topf-Verlauf** (`PotDetailActivity`): alle Gieß-Vorgänge sowie die
+  simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
+  Vorbild `KennzeichenMapView`).
+
+### Datenmodell (Firestore, live synchronisiert)
+
+Der Wasservorrat gehört zum **Topf**, nicht zur Pflanze. Es wird kein
+laufender Füllstand gespeichert - der Zustand wird bei jeder Anzeige
+zustandslos aus dem letzten Gießvorgang plus der stündlichen Wetterreihe neu
+berechnet:
+
+```
+pots/{potId}
+  uid, name, durchmesserCm, volumenLiter (berechnet),
+  standort: "innen" | "unterDach" | "frei",
+  kapazitaetMm (kalibriert, Startwert berechnet),
+  kapazitaetStartwertMm (eingefrorener Startwert, begrenzt die Kalibrierung),
+  standortfaktor (Startwert aus dem Standort, danach frei nachjustierbar),
+  latitude, longitude (optional, sonst Gerätestandort)
+
+plants/{plantId}
+  uid, potId, name, species (wissenschaftlich, optional),
+  kategorie: SUKKULENTE | MEDITERRAN | STANDARD | DURSTIG | GEMUESE,
+  kcBasis, groessenfaktor (Default 1.0)
+
+waterings/{autoId}          // append-only Log, wie discoveries
+  uid, potId, wateredAt (Server-Timestamp),
+  feedback: "UEBERFAELLIG" | "PASSEND" | "NOCH_FEUCHT" | null
+
+weather_cache/{uid}         // ein Dokument je Nutzer, ein Eintrag je Standort
+  locations: { "<lat,lon gerundet>": { fetchedAt, latitude, longitude, hourly } }
+```
+
+Anders als beim Kennzeichen-Sammelspiel sind `pots`, `plants` und
+`waterings` rein privat (kein gemeinsamer Log) - siehe Firestore-Regeln
+unten.
+
+### Rechenweg (`PlantWaterCalculator`, ohne Android-Abhängigkeiten)
+
+**Verdunstung.** Basis ist ET₀ (Referenzverdunstung, mm/h) aus der
+Wetter-API. Pro Topf:
+
+    Kc_topf = Σ (kcBasis × groessenfaktor) über alle Pflanzen im Topf
+    ET_topf(t) = ET0(t) × standortfaktor × Kc_topf
+
+Standortfaktor-Startwerte: frei = 1.0, unterDach = 0.5, innen = 0.25.
+
+**Wasserbilanz.**
+
+    vorrat(t) = clamp(vorrat(t-1) − ET_topf(t) + regen(t) × regenfaktor, 0, kapazitaetMm)
+
+Regenfaktor: frei = 1.0, unterDach = 0.0, innen = 0.0. Nach jedem Gießen
+startet der Vorrat wieder bei voller Kapazität; die Gießschwelle liegt bei
+50 % der Kapazität.
+
+**Startwert der Kapazität.** Topfvolumen als Kegelstumpf (obere Öffnung =
+Durchmesser, untere Öffnung ≈ 70 % davon, Höhe ≈ 0.85 × Durchmesser), davon
+28 % pflanzenverfügbares Wasser, umgerechnet auf mm über die
+Topf-Grundfläche.
+
+**Prognose.** Das Modell läuft mit der Wetterreihe (Vergangenheit + Prognose)
+stündlich vorwärts, bis der Vorrat die Gießschwelle unterschreitet - das
+ergibt das Fälligkeitsdatum. Wurde seit dem letzten Gießen länger nicht mehr
+gegossen, als die Wetter-Rückschau zurückreicht, wird die Lücke einmalig mit
+der mittleren ET0 der verfügbaren Woche überbrückt. Bei jedem Wetterabruf
+wird neu gerechnet.
+
+**Selbstkalibrierung.** Bei jedem neuen Gießvorgang:
+
+    verhaeltnis = verbrauchtBisGiessen / gießschwelle
+    kapazitaetMm *= (1 + 0.2 × (verhaeltnis − 1))
+
+Das optionale Feedback beim Gießen verschiebt zusätzlich: „Überfällig" →
+Kapazität −10 %, „War noch feucht" → +10 %. `kapazitaetMm` ist auf 20-500 %
+des geometrischen Startwerts (`kapazitaetStartwertMm`) begrenzt.
+`standortfaktor` kalibriert sich dabei **nicht** automatisch mit - er wird
+beim Anlegen aus dem Standort vorbelegt und danach nur von Hand in
+`PotEditActivity` nachjustiert.
+
+### Datenquellen
+
+Wetterdaten (ET0, Niederschlag) kommen kostenlos und ohne API-Key von
+[Open-Meteo](https://open-meteo.com/en/docs) (`past_days=7&forecast_days=7`,
+`timezone=Europe/Berlin`), abgerufen über dieselbe einfache HTTP-Mechanik
+wie beim In-App-Update (`HttpURLConnection`, kein neues Gradle-Modul). Die
+Antwort wird in Firestore zwischengespeichert (`weather_cache/{uid}`,
+höchstens ein Abruf alle 3 Stunden je Standort); schlägt ein Abruf fehl,
+rechnet die App mit dem letzten Cache-Stand weiter und weist in der
+Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
+
+### Grenzen des Modells
+
+- **Licht wird nicht erfasst.** Ein schattiger vs. sonniger Platz mit
+  gleichem `standort`-Wert sieht für das Modell identisch aus - das lässt
+  sich nur indirekt über einen von Hand nachjustierten `standortfaktor`
+  ausgleichen.
+- **Umtopfen und Wachstum brechen die Kalibrierung.** Ein neuer Durchmesser
+  in `PotEditActivity` setzt `kapazitaetMm` bewusst auf den neu berechneten
+  geometrischen Startwert zurück - die bisherige Selbstkalibrierung ist
+  damit hinfällig und baut sich erst über die nächsten Gießvorgänge wieder
+  auf. Deutliches Pflanzenwachstum (verändertes `groessenfaktor`) hat einen
+  ähnlichen, aber unauffälligeren Effekt.
+- **Selbstbewässerungstöpfe/Untersetzer mit Wasserreservoir passen nicht ins
+  Modell** - sie folgen keiner reinen Verdunstungs-Bilanz (das Reservoir
+  puffert unabhängig von der Topf-Kapazität), die Prognose wäre für solche
+  Töpfe irreführend.
+- Kein Bluetooth-/TP357-Sensor in diesem Schritt - `WeatherRepository` ist
+  aber so gehalten, dass sich eine lokale Mikroklima-Messquelle später
+  danebenstellen ließe. Keine Artendatenbank-Anbindung: `species` wird nur
+  gespeichert, die Kategorie bleibt vorerst eine manuelle Auswahl.
+
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
 Das Projekt nutzt die bestehende Firebase-Datenbank `kennzeichen-zyo`.
@@ -291,6 +426,30 @@ eigenen Konto lesbar/schreibbar):
 
 ```
 match /notenspiegel_settings/{uid} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+```
+
+Für den Gießplaner (Töpfe und Pflanzen rein privat je Konto; der Gieß-Log
+ist wie `discoveries` nur anhängbar, aber - anders als dort - ebenfalls nur
+vom eigenen Konto lesbar; der Wetter-Cache ist reine Zwischenablage je
+Konto):
+
+```
+match /pots/{potId} {
+  allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+}
+match /plants/{plantId} {
+  allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+}
+match /waterings/{wateringId} {
+  allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow update, delete: if false;
+}
+match /weather_cache/{uid} {
   allow read, write: if request.auth != null && request.auth.uid == uid;
 }
 ```
@@ -394,6 +553,14 @@ app/src/main/java/com/oliver/zylka/
 │       ├── NotenspiegelSettings.kt   # Persönliche (oder Standard-)Schwellen
 │       ├── NotenspiegelSettingsRepository.kt  # Firestore: notenspiegel_settings/{uid}
 │       └── NotenspiegelCalculator.kt # Prozent-Schwellen → Punkte-Bereiche je Note
+│   └── plants/                 # Datenschicht des Gießplaners
+│       ├── Standort.kt / PlantCategory.kt / WateringFeedback.kt  # Enums mit Startwerten
+│       ├── Pot.kt / Plant.kt / Watering.kt   # Firestore-Datenklassen
+│       ├── PotRepository.kt / PlantRepository.kt / WateringRepository.kt
+│       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung)
+│       ├── WeatherRepository.kt      # Open-Meteo-Abruf + weather_cache/{uid}
+│       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter zu Prognosen
+│       └── PlantPrefs.kt             # Erinnerung an/aus + Uhrzeit (SharedPreferences)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -415,6 +582,17 @@ app/src/main/java/com/oliver/zylka/
 │   ├── NotenspiegelSettingsActivity.kt  # Schwellen bearbeiten + speichern
 │   ├── GradeBandAdapter.kt          # RecyclerView-Adapter für die Ergebnisliste
 │   └── GradeThresholdEditAdapter.kt # RecyclerView-Adapter für die Schwellen-Eingabe
+├── plants/                      # UI + Alarme des Gießplaners
+│   ├── PlantsHomeActivity.kt        # Töpfe nach Dringlichkeit, Gießen-Button, Erinnerung
+│   ├── PotEditActivity.kt           # Topf anlegen/bearbeiten, Pflanzen zuordnen
+│   ├── PlantEditActivity.kt         # Pflanze anlegen/bearbeiten
+│   ├── PotDetailActivity.kt         # Gieß-Verlauf + Vorratskurve
+│   ├── PotSummaryAdapter.kt / WateringHistoryAdapter.kt  # RecyclerView-Adapter
+│   ├── PotWaterLevelChartView.kt    # Canvas-Custom-View, zeichnet die Vorratskurve
+│   ├── PlantAlarmScheduler.kt       # Plant den Alarm für den dringlichsten Topf
+│   ├── PlantAlarmReceiver.kt        # Zeigt Benachrichtigung, plant Folgealarm
+│   ├── PlantBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
+│   └── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

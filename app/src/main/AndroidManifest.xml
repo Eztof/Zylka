@@ -79,12 +79,40 @@
             android:name=".notenspiegel.NotenspiegelSettingsActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".plants.PlantsHomeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.PotEditActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.PlantEditActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.PotDetailActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".waste.WasteAlarmReceiver"
             android:exported="false" />
 
         <receiver
             android:name=".waste.WasteBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".plants.PlantAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".plants.PlantBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
