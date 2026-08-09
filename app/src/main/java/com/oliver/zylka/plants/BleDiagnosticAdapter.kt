@@ -44,18 +44,19 @@ class BleDiagnosticAdapter(
         fun bind(entry: RawScanResult) {
             val context = binding.root.context
             binding.textDeviceName.text = entry.name ?: context.getString(R.string.sensor_unknown_device)
-            binding.textDeviceRssi.text = context.getString(
-                R.string.sensor_diagnostic_meta,
-                timeFormat.format(Date(entry.epochMillis)),
-                entry.rssi,
-            )
+            val time = timeFormat.format(Date(entry.epochMillis))
+            binding.textDeviceRssi.text = if (entry.rssi != null) {
+                context.getString(R.string.sensor_diagnostic_meta, time, entry.rssi)
+            } else {
+                time
+            }
             binding.textDeviceMac.text = entry.macAddress
             binding.textRawBytes.text = entry.rawBytesHex
-            if (entry.manufacturerData.isEmpty()) {
+            if (entry.extraLines.isEmpty()) {
                 binding.textManufacturerData.isVisible = false
             } else {
                 binding.textManufacturerData.isVisible = true
-                binding.textManufacturerData.text = entry.manufacturerData.joinToString("\n")
+                binding.textManufacturerData.text = entry.extraLines.joinToString("\n")
             }
             binding.buttonCopy.setOnClickListener { onCopy(entry) }
         }

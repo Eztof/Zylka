@@ -230,4 +230,9 @@
     <string name="sensor_diagnostic_action_export">Exportieren</string>
     <string name="sensor_diagnostic_export_empty">Nichts zu exportieren</string>
     <string name="sensor_diagnostic_export_chooser_title">Sensordiagnose teilen</string>
+    <string name="sensor_diagnostic_action_gatt_start">Per GATT verbinden</string>
+    <string name="sensor_diagnostic_action_gatt_stop">Zurück zum Scan</string>
+    <string name="sensor_diagnostic_gatt_pick_title">Gerät für GATT-Verbindung wählen</string>
+    <string name="sensor_diagnostic_gatt_no_devices">Noch kein Gerät gesehen - erst kurz scannen</string>
+    <string name="sensor_diagnostic_gatt_active">Verbunden (GATT): %1$s - alle Notify-/Read-Characteristics</string>
 </resources>

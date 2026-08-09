@@ -384,26 +384,39 @@ höchstens ein Abruf alle 3 Stunden je Standort); schlägt ein Abruf fehl,
 rechnet die App mit dem letzten Cache-Stand weiter und weist in der
 Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
 
-Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`), rein
-passiv per BLE-Scan (`BluetoothLeScanner`/`ScanCallback`, keine
-GATT-Verbindung, keine Kopplung nötig) - "In der Nähe suchen" beim Anlegen
-eines Sensors listet sichtbare BLE-Geräte, "Jetzt abrufen" filtert gezielt
-auf die hinterlegte MAC-Adresse und wartet auf deren nächstes Advertisement.
-⚠️ **Das Parsing der TP357-Messwerte aus den Advertisement-Bytes ist
-reverse-engineered und nicht mit echter Hardware gegen die offizielle
-ThermoPro-App verifiziert** (`SensorBleScanner.parseTp357`, mit
-Plausibilitätsprüfung -40…60 °C / 0…100 % gegen offensichtlich falsche
-Werte). Vor produktivem Einsatz einmal gegen die ThermoPro-App
-gegenprüfen; weicht das Format ab, muss nur `parseTp357` angepasst werden.
+Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`).
+Manche TP357-Varianten senden Temperatur/Feuchte fortlaufend im BLE-
+Advertisement (rein passiver Scan, keine Verbindung nötig); andere - wie
+sich in der Praxis gezeigt hat - senden **nur über eine aktive
+GATT-Verbindung mit Notification-Abo**, das Advertisement enthält dann
+keine Messwerte. `SensorBleScanner.readSensor` probiert deshalb beides
+nacheinander: zuerst per GATT verbinden und alle Notify-/Read-fähigen
+Characteristics abhören/lesen, erst danach als Fallback passives
+Advertisement-Scannen.
+⚠️ **Beide Byte-Formate sind reverse-engineered und nicht mit echter
+Hardware gegen die offizielle ThermoPro-App verifiziert** -
+`SensorBleScanner.parseTp357` (Advertisement) und
+`SensorBleScanner.parseGattNotification` (GATT; Byte-Layout aus einem
+Nutzer-Skript für ein anderes, ThermoPro-ähnliches Projekt übernommen),
+beide mit Plausibilitätsprüfung gegen offensichtlich falsche Werte. Vor
+produktivem Einsatz gegen die ThermoPro-App gegenprüfen; weicht das
+Format ab, reicht es, die jeweilige `parse*`-Funktion anzupassen.
+
 Zum Identifizieren eines Sensors und Ableiten seines tatsächlichen
 Byte-Formats gibt es unter „Sensoren" → „Bluetooth-Diagnose"
-(`SensorDiagnosticActivity`) einen Rohdaten-Modus: protokolliert **jedes**
-empfangene Werbepaket in der Nähe (nicht nur den letzten Wert je Gerät) mit
-Zeitstempel, Name/MAC, Signalstärke und dem vollen Hex-Dump, unabhängig
-davon, ob `parseTp357` es erkennt - ein Textfilter grenzt das Log auf ein
-einzelnes Gerät ein, „Exportieren" teilt das (gefilterte) Log per
-Standard-Share-Sheet als Text (z. B. per Messenger oder Mail), „Kopieren"
-legt einen einzelnen Eintrag in die Zwischenablage.
+(`SensorDiagnosticActivity`) einen Rohdaten-Modus mit zwei Quellen:
+- **Scan** (Standard): protokolliert jedes empfangene Advertisement in der
+  Nähe (nicht nur den letzten Wert je Gerät) mit Zeitstempel, Name/MAC,
+  Signalstärke und vollem Hex-Dump.
+- **GATT** (Menü „Per GATT verbinden", ein Gerät aus den zuletzt gesehenen
+  auswählen): verbindet sich damit und protokolliert **jede** Notification
+  und jede Read-Antwort **jeder** Characteristic als Hex-Dump - auch wenn
+  `parseGattNotification` sie nicht erkennt.
+
+In beiden Modi grenzt ein Textfilter das Log auf ein einzelnes Gerät ein,
+„Exportieren" teilt das (gefilterte) Log komplett per Standard-Share-Sheet
+als Text (z. B. per Messenger oder Mail), „Kopieren" legt einen einzelnen
+Eintrag in die Zwischenablage.
 
 **Kein Gerät gefunden?** `BLUETOOTH_SCAN` ist im Manifest mit
 `android:usesPermissionFlags="neverForLocation"` deklariert - ohne dieses
@@ -647,7 +660,7 @@ app/src/main/java/com/oliver/zylka/
 │       ├── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
 │       ├── Sensor.kt / SensorReading.kt      # TP357-Firestore-Datenklassen
 │       ├── SensorRepository.kt / SensorReadingRepository.kt
-│       └── SensorBleScanner.kt       # BLE-Scan/-Pull eines TP357 (best effort, siehe README oben)
+│       └── SensorBleScanner.kt       # TP357 lesen: GATT zuerst, Advertisement-Scan als Fallback (best effort, siehe README oben)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt

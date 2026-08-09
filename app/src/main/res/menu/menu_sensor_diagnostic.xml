@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_gatt_connect"
+        android:title="@string/sensor_diagnostic_action_gatt_start"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_export_diagnostic"
         android:title="@string/sensor_diagnostic_action_export"
         app:showAsAction="never" />

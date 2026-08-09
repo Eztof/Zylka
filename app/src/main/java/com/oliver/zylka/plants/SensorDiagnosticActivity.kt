@@ -12,6 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -23,18 +24,26 @@ import com.oliver.zylka.data.plants.RawScanResult
 import com.oliver.zylka.data.plants.SensorBleScanner
 import com.oliver.zylka.databinding.ActivitySensorDiagnosticBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Rohdaten-Diagnose: protokolliert **jedes** empfangene BLE-Werbepaket in der Nähe (nicht nur
- * den letzten Wert je Gerät) mit Zeitstempel, Name/MAC, Signalstärke und dem vollen Hex-Dump -
- * unabhängig davon, ob [SensorBleScanner] es als TP357 erkennt. Ein Filter grenzt das Log auf
- * ein einzelnes Gerät ein (z. B. Namen oder MAC-Ausschnitt eintippen), "Kopieren" legt einen
- * einzelnen Eintrag in die Zwischenablage, "Exportieren" teilt das komplette (gefilterte) Log
- * als Text - damit sich ein Sensor identifizieren und sein Byte-Format extern ableiten lässt.
+ * Rohdaten-Diagnose: protokolliert **jedes** empfangene BLE-Paket in der Nähe (nicht nur den
+ * letzten Wert je Gerät) mit Zeitstempel, Name/MAC, Signalstärke und dem vollen Hex-Dump.
+ *
+ * Zwei Modi:
+ * - **Scan** (Standard): passives Advertisement-Scannen, wie bisher.
+ * - **GATT** (Menü "Per GATT verbinden"): verbindet sich mit einem ausgewählten Gerät und
+ *   abonniert/liest *alle* Characteristics roh - für Geräte (wie sich bei diesem TP357 gezeigt
+ *   hat), die ihre Messwerte nicht im Advertisement, sondern nur über eine aktive Verbindung
+ *   herausrücken. Siehe [SensorBleScanner.observeGattFlow].
+ *
+ * Ein Filter grenzt das Log auf ein einzelnes Gerät ein, "Kopieren" legt einen einzelnen
+ * Eintrag in die Zwischenablage, "Exportieren" teilt das komplette (gefilterte) Log als Text -
+ * damit sich ein Sensor identifizieren und sein Byte-Format extern ableiten lässt.
  */
 class SensorDiagnosticActivity : AppCompatActivity() {
 
@@ -48,6 +57,10 @@ class SensorDiagnosticActivity : AppCompatActivity() {
     private val log = ArrayDeque<RawScanResult>()
     private var query: String = ""
     private var lastRenderAt = 0L
+    private var scanJob: Job? = null
+
+    /** null = passiver Advertisement-Scan; gesetzt = per GATT mit dieser MAC verbunden. */
+    private var gattMac: String? = null
 
     private val requestBlePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -89,12 +102,45 @@ class SensorDiagnosticActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_gatt_connect)?.title = getString(
+            if (gattMac != null) R.string.sensor_diagnostic_action_gatt_stop else R.string.sensor_diagnostic_action_gatt_start,
+        )
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_export_diagnostic) {
-            exportLog()
-            return true
+        when (item.itemId) {
+            R.id.action_export_diagnostic -> exportLog()
+            R.id.action_gatt_connect -> onGattConnectClicked()
+            else -> return super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
+        return true
+    }
+
+    private fun onGattConnectClicked() {
+        if (gattMac != null) {
+            gattMac = null
+            binding.textCaption.setText(R.string.sensor_diagnostic_caption)
+            invalidateOptionsMenu()
+            startScanning()
+            return
+        }
+        val macs = log.map { it.macAddress }.distinct()
+        if (macs.isEmpty()) {
+            Toast.makeText(this, R.string.sensor_diagnostic_gatt_no_devices, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = macs.map { mac -> log.first { it.macAddress == mac }.name?.let { "$it ($mac)" } ?: mac }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sensor_diagnostic_gatt_pick_title)
+            .setItems(labels) { _, which ->
+                gattMac = macs[which]
+                binding.textCaption.text = getString(R.string.sensor_diagnostic_gatt_active, macs[which])
+                invalidateOptionsMenu()
+                startScanning()
+            }
+            .show()
     }
 
     private fun startScanning() {
@@ -104,10 +150,12 @@ class SensorDiagnosticActivity : AppCompatActivity() {
             return
         }
         binding.progressScanning.isVisible = true
-        lifecycleScope.launch {
+        scanJob?.cancel()
+        scanJob = lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 try {
-                    bleScanner.scanRawFlow().collect { result ->
+                    val flow = gattMac?.let { bleScanner.observeGattFlow(it) } ?: bleScanner.scanRawFlow()
+                    flow.collect { result ->
                         log.addFirst(result)
                         while (log.size > MAX_LOG_ENTRIES) log.removeLast()
                         renderThrottled()
@@ -171,9 +219,9 @@ class SensorDiagnosticActivity : AppCompatActivity() {
         appendLine(exportTimeFormat.format(Date(entry.epochMillis)))
         appendLine(entry.name ?: getString(R.string.sensor_unknown_device))
         appendLine(entry.macAddress)
-        appendLine(getString(R.string.sensor_diagnostic_rssi, entry.rssi))
+        if (entry.rssi != null) appendLine(getString(R.string.sensor_diagnostic_rssi, entry.rssi))
         appendLine(entry.rawBytesHex)
-        entry.manufacturerData.forEach { appendLine(it) }
+        entry.extraLines.forEach { appendLine(it) }
     }.trim()
 
     companion object {
