@@ -138,7 +138,7 @@ class SensorBleScanner(private val context: Context) {
                         if (status == BluetoothGatt.GATT_SUCCESS) parseGattNotification(value)?.let { finish(it) }
                     }
                 }
-                gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+                gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE, BluetoothDevice.PHY_LE_1M_MASK)
                 cont.invokeOnCancellation {
                     runCatching { gatt?.disconnect() }
                     runCatching { gatt?.close() }
@@ -208,7 +208,7 @@ class SensorBleScanner(private val context: Context) {
             }
         }
 
-        val gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE) ?: return null
+        val gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE, BluetoothDevice.PHY_LE_1M_MASK) ?: return null
         return try {
             withTimeoutOrNull(timeoutMillis) {
                 if (servicesReady.await() != true) return@withTimeoutOrNull null
@@ -378,7 +378,7 @@ class SensorBleScanner(private val context: Context) {
                 if (status == BluetoothGatt.GATT_SUCCESS) trySend(characteristic.toRawScanResult(macAddress, value, "read"))
             }
         }
-        gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+        gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE, BluetoothDevice.PHY_LE_1M_MASK)
         if (sendHistoryRequest) {
             launch {
                 if (servicesReady.await() != true) return@launch
