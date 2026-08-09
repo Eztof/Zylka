@@ -76,7 +76,7 @@ class PotEditActivity : AppCompatActivity() {
         if (potId == null) {
             title = getString(R.string.pot_edit_title_new)
             applyPotToForm(Pot())
-            updatePlantsSection()
+            renderPlantsList()
         } else {
             lifecycleScope.launch {
                 val loaded = potRepository.getPot(potId) ?: Pot(id = potId)
@@ -158,11 +158,6 @@ class PotEditActivity : AppCompatActivity() {
         }
     }
 
-    private fun updatePlantsSection() {
-        binding.textPlantsHint.isVisible = currentPot.id.isBlank()
-        renderPlantsList()
-    }
-
     private fun renderPlantsList() {
         binding.containerPlants.removeAllViews()
         for (plant in assignedPlants) {
@@ -212,7 +207,7 @@ class PotEditActivity : AppCompatActivity() {
         val id = potRepository.save(toSave)
         currentPot = toSave.copy(id = id)
         binding.buttonDelete.isVisible = true
-        updatePlantsSection()
+        renderPlantsList()
         return id
     }
 

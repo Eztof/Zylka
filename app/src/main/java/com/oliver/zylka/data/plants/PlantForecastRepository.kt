@@ -39,7 +39,10 @@ class PlantForecastRepository(
 
     private val locationHelper = LocationHelper(context)
 
-    suspend fun computeForecasts(uid: String): List<PotForecast> {
+    suspend fun computeForecasts(
+        uid: String,
+        schwelleAnteil: Double = PlantWaterCalculator.GIESSSCHWELLE_ANTEIL,
+    ): List<PotForecast> {
         val pots = potRepository.loadPots(uid)
         if (pots.isEmpty()) return emptyList()
 
@@ -48,7 +51,7 @@ class PlantForecastRepository(
         val now = System.currentTimeMillis()
 
         val forecasts = pots.map { pot ->
-            forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now)
+            forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now, schwelleAnteil)
         }
         return forecasts.sortedWith(
             compareBy(
@@ -63,6 +66,7 @@ class PlantForecastRepository(
         plants: List<Plant>,
         deviceLocation: Pair<Double, Double>?,
         nowEpochMillis: Long,
+        schwelleAnteil: Double,
     ): PotForecast {
         val latitude = pot.latitude ?: deviceLocation?.first
         val longitude = pot.longitude ?: deviceLocation?.second
@@ -84,6 +88,7 @@ class PlantForecastRepository(
             regenfaktor = pot.standort.regenfaktor,
             kcTopf = PlantWaterCalculator.kcTopf(plants),
             kapazitaetMm = pot.kapazitaetMm,
+            schwelleAnteil = schwelleAnteil,
         )
         val percentFull = if (pot.kapazitaetMm > 0.0) {
             (simulation.vorratJetztMm / pot.kapazitaetMm * 100).toInt().coerceIn(0, 100)
