@@ -28,13 +28,12 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
- * Topf anlegen/bearbeiten: Name, Durchmesser ODER Volumen (beide Felder rechnen sich
- * ineinander um, mit live berechneter Kapazitäts-Vorschau,
- * [PlantWaterCalculator.startKapazitaet]/[PlantWaterCalculator.durchmesserFuerVolumen]),
- * Standort, Standortfaktor (Startwert aus dem Standort, danach frei nachjustierbar -
- * kalibriert sich nicht automatisch mit), optionale Position, zugeordnete Pflanzen. Ein
- * neuer Topf wird beim ersten "+ Pflanze hinzufügen" automatisch gespeichert, damit eine
- * `potId` für die Zuordnung existiert.
+ * Topf anlegen/bearbeiten: Name, Grundfläche in cm² (rund oder eckig - siehe Erklärtext im
+ * Formular, mit live berechneter Kapazitäts-Vorschau,
+ * [PlantWaterCalculator.startKapazitaet]), Standort, Standortfaktor (Startwert aus dem
+ * Standort, danach frei nachjustierbar - kalibriert sich nicht automatisch mit), optionale
+ * Position, zugeordnete Pflanzen. Ein neuer Topf wird beim ersten "+ Pflanze hinzufügen"
+ * automatisch gespeichert, damit eine `potId` für die Zuordnung existiert.
  */
 class PotEditActivity : AppCompatActivity() {
 
@@ -46,10 +45,6 @@ class PotEditActivity : AppCompatActivity() {
 
     private var currentPot = Pot()
     private var assignedPlants: List<Plant> = emptyList()
-
-    /** Verhindert eine Endlosschleife, während Durchmesser- und Volumen-Feld sich
-     * gegenseitig synchron halten. */
-    private var syncingSizeFields = false
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -63,16 +58,7 @@ class PotEditActivity : AppCompatActivity() {
         binding.toolbar.applyStatusBarTopInset()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        binding.inputDurchmesser.addTextChangedListener(simpleWatcher {
-            if (syncingSizeFields) return@simpleWatcher
-            updateCapacityPreview()
-            syncVolumenFromDurchmesser()
-        })
-        binding.inputVolumen.addTextChangedListener(simpleWatcher {
-            if (syncingSizeFields) return@simpleWatcher
-            syncDurchmesserFromVolumen()
-            updateCapacityPreview()
-        })
+        binding.inputGrundflaeche.addTextChangedListener(simpleWatcher { updateCapacityPreview() })
         binding.toggleStandort.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val standort = standortForButtonId(checkedId) ?: return@addOnButtonCheckedListener
@@ -112,42 +98,21 @@ class PotEditActivity : AppCompatActivity() {
 
     private fun applyPotToForm(pot: Pot) {
         binding.inputName.setText(pot.name)
-        if (pot.durchmesserCm > 0.0) binding.inputDurchmesser.setText(formatDouble(pot.durchmesserCm))
+        if (pot.grundflaecheCm2 > 0.0) binding.inputGrundflaeche.setText(formatDouble(pot.grundflaecheCm2))
         binding.toggleStandort.check(buttonIdForStandort(pot.standort))
         binding.inputStandortfaktor.setText(formatDouble(pot.standortfaktor))
         pot.latitude?.let { binding.inputLatitude.setText(it.toString()) }
         pot.longitude?.let { binding.inputLongitude.setText(it.toString()) }
-        syncVolumenFromDurchmesser()
         updateCapacityPreview()
     }
 
-    /** Volumen-Feld aus dem Durchmesser-Feld nachziehen (z. B. nach Laden eines Topfs oder
-     * Tippen im Durchmesser-Feld). */
-    private fun syncVolumenFromDurchmesser() {
-        val durchmesser = parseDouble(binding.inputDurchmesser.text) ?: return
-        val liter = PlantWaterCalculator.startKapazitaet(durchmesser).volumenLiter
-        syncingSizeFields = true
-        binding.inputVolumen.setText(formatDouble(liter))
-        syncingSizeFields = false
-    }
-
-    /** Umgekehrte Richtung: Durchmesser-Feld aus dem Volumen-Feld nachziehen (Tippen im
-     * Volumen-Feld), über [PlantWaterCalculator.durchmesserFuerVolumen]. */
-    private fun syncDurchmesserFromVolumen() {
-        val liter = parseDouble(binding.inputVolumen.text) ?: return
-        val durchmesser = PlantWaterCalculator.durchmesserFuerVolumen(liter)
-        syncingSizeFields = true
-        binding.inputDurchmesser.setText(formatDouble(durchmesser))
-        syncingSizeFields = false
-    }
-
     private fun updateCapacityPreview() {
-        val durchmesser = parseDouble(binding.inputDurchmesser.text)
-        if (durchmesser == null || durchmesser <= 0.0) {
+        val grundflaeche = parseDouble(binding.inputGrundflaeche.text)
+        if (grundflaeche == null || grundflaeche <= 0.0) {
             binding.textCapacityPreview.text = getString(R.string.pot_edit_capacity_preview_empty)
             return
         }
-        val estimate = PlantWaterCalculator.startKapazitaet(durchmesser)
+        val estimate = PlantWaterCalculator.startKapazitaet(grundflaeche)
         binding.textCapacityPreview.text = getString(R.string.pot_edit_capacity_preview, formatDouble(estimate.kapazitaetMm))
     }
 
@@ -202,8 +167,8 @@ class PotEditActivity : AppCompatActivity() {
     private suspend fun ensureSaved(): String? {
         val uid = authRepository.currentUser?.uid ?: return null
         val name = binding.inputName.text?.toString()?.trim().orEmpty()
-        val durchmesser = parseDouble(binding.inputDurchmesser.text)
-        if (name.isBlank() || durchmesser == null || durchmesser <= 0.0) {
+        val grundflaeche = parseDouble(binding.inputGrundflaeche.text)
+        if (name.isBlank() || grundflaeche == null || grundflaeche <= 0.0) {
             Toast.makeText(this, R.string.pot_edit_error_required, Toast.LENGTH_SHORT).show()
             return null
         }
@@ -212,17 +177,17 @@ class PotEditActivity : AppCompatActivity() {
         val latitude = parseDouble(binding.inputLatitude.text)
         val longitude = parseDouble(binding.inputLongitude.text)
 
-        // Durchmesser geändert (oder neuer Topf) -> Kapazität geometrisch neu ansetzen; die
+        // Grundfläche geändert (oder neuer Topf) -> Kapazität geometrisch neu ansetzen; die
         // bisherige Selbstkalibrierung basierte sonst auf der falschen Geometrie.
-        val durchmesserChanged = currentPot.id.isBlank() || durchmesser != currentPot.durchmesserCm
-        val estimate = PlantWaterCalculator.startKapazitaet(durchmesser)
-        val kapazitaetMm = if (durchmesserChanged) estimate.kapazitaetMm else currentPot.kapazitaetMm
-        val kapazitaetStartwertMm = if (durchmesserChanged) estimate.kapazitaetMm else currentPot.kapazitaetStartwertMm
+        val flaecheChanged = currentPot.id.isBlank() || grundflaeche != currentPot.grundflaecheCm2
+        val estimate = PlantWaterCalculator.startKapazitaet(grundflaeche)
+        val kapazitaetMm = if (flaecheChanged) estimate.kapazitaetMm else currentPot.kapazitaetMm
+        val kapazitaetStartwertMm = if (flaecheChanged) estimate.kapazitaetMm else currentPot.kapazitaetStartwertMm
 
         val toSave = currentPot.copy(
             uid = uid,
             name = name,
-            durchmesserCm = durchmesser,
+            grundflaecheCm2 = grundflaeche,
             volumenLiter = estimate.volumenLiter,
             standort = standort,
             kapazitaetMm = kapazitaetMm,

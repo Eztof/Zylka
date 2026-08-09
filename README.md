@@ -243,17 +243,22 @@ selbst nach.
   Schwellenwert in %, Standard 50) direkt auf dem Screen: keine feste
   Uhrzeit, die Benachrichtigung feuert genau dann, wenn die Prognose eines
   Topfs den eingestellten Wert unterschreitet.
-- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser ODER
-  direkt das Volumen in Litern (beide Felder rechnen sich ineinander um,
-  mit sofort berechneter Kapazitäts-Vorschau), Standort, optionale Position
-  (sonst wird bei jeder Prognose der Gerätestandort verwendet), zugeordnete
-  Pflanzen.
+- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Grundfläche in cm²
+  (rund: π × r², eckig: Länge × Breite - mit sofort berechneter
+  Kapazitäts-Vorschau), Standort, optionale Position (sonst wird bei jeder
+  Prognose der Gerätestandort verwendet), zugeordnete Pflanzen.
 - **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Kategorie,
   Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag statt
-  einzeln anzulegen).
+  einzeln anzulegen), optional ein TP357-Sensor (mehrere Pflanzen können sich
+  einen teilen, z. B. für die Raumtemperatur).
 - **Topf-Verlauf** (`PotDetailActivity`): alle Gieß-Vorgänge sowie die
   simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
   Vorbild `KennzeichenMapView`).
+- **Temperatursensoren** (`SensorsActivity`, verlinkt von der Startseite):
+  Liste aller angelegten TP357-Sensoren mit letztem Messwert, durchsuchbar.
+  `SensorEditActivity` legt Sensoren an/benennt sie um (per Hand oder über
+  eine Bluetooth-Umgebungssuche), `SensorDetailActivity` zeigt den aktuellen
+  Messwert, pullt per Knopfdruck eine neue Messung und listet die Chronik.
 
 ### Datenmodell (Firestore, live synchronisiert)
 
@@ -264,7 +269,7 @@ berechnet:
 
 ```
 pots/{potId}
-  uid (wer angelegt hat), name, durchmesserCm, volumenLiter (berechnet),
+  uid (wer angelegt hat), name, grundflaecheCm2, volumenLiter (berechnet),
   standort: "innen" | "unterDach" | "frei",
   kapazitaetMm (kalibriert, Startwert berechnet),
   kapazitaetStartwertMm (eingefrorener Startwert, begrenzt die Kalibrierung),
@@ -275,7 +280,8 @@ plants/{plantId}
   uid (wer angelegt hat), potId, name,
   kategorie: SUKKULENTE | MEDITERRAN | STANDARD | DURSTIG | GEMUESE,
   kcBasis, groessenfaktor (Default 1.0), anzahl (Default 1 - mehrere
-  gleiche Pflanzen als ein Eintrag statt einzeln anzulegen)
+  gleiche Pflanzen als ein Eintrag statt einzeln anzulegen),
+  sensorId (optional, verweist auf sensors/{sensorId})
 
 waterings/{autoId}          // append-only Log, wie discoveries
   uid (wer gegossen hat), potId, wateredAt (Server-Timestamp),
@@ -283,13 +289,23 @@ waterings/{autoId}          // append-only Log, wie discoveries
 
 weather_cache/{uid}         // ein Dokument je Nutzer, ein Eintrag je Standort
   locations: { "<lat,lon gerundet>": { fetchedAt, latitude, longitude, hourly } }
+
+sensors/{sensorId}
+  uid (wer angelegt hat), name, macAddress,
+  lastTemperatureC, lastHumidityPercent, lastMeasuredAt (denormalisiert für
+  die Startseiten-Kachel, wird bei jedem Pull aktualisiert)
+
+sensor_readings/{autoId}    // append-only Log, wie waterings
+  uid (wer gepullt hat), sensorId, measuredAt (Server-Timestamp),
+  temperatureC, humidityPercent
 ```
 
-`pots`, `plants` und `waterings` sind zwischen allen eingeloggten Nutzern
-geteilt (gemeinsamer Garten, z. B. für dich und deine Partnerin) - jeder
-sieht und bearbeitet alle Töpfe und Pflanzen, unabhängig davon, wer sie
-angelegt hat; das `uid`-Feld ist reine Herkunfts-Information. Nur der
-Wetter-Cache bleibt strikt pro Konto (siehe Firestore-Regeln unten).
+`pots`, `plants`, `waterings`, `sensors` und `sensor_readings` sind zwischen
+allen eingeloggten Nutzern geteilt (gemeinsamer Garten, z. B. für dich und
+deine Partnerin) - jeder sieht und bearbeitet alle Töpfe, Pflanzen und
+Sensoren, unabhängig davon, wer sie angelegt hat; das `uid`-Feld ist reine
+Herkunfts-Information. Nur der Wetter-Cache bleibt strikt pro Konto (siehe
+Firestore-Regeln unten).
 
 ### Rechenweg (`PlantWaterCalculator`, ohne Android-Abhängigkeiten)
 
@@ -310,16 +326,17 @@ startet der Vorrat wieder bei voller Kapazität; die Gießschwelle ist der in
 `PlantsHomeActivity` eingestellte Feuchte-Schwellenwert (Standard 50 % der
 Kapazität, per Schieberegler 20-80 % einstellbar).
 
-**Startwert der Kapazität.** Topfvolumen als Kegelstumpf (obere Öffnung =
-Durchmesser, untere Öffnung ≈ 70 % davon, Höhe ≈ 0.85 × Durchmesser), davon
-28 % pflanzenverfügbares Wasser, umgerechnet auf mm über die
-Topf-Grundfläche. Diese Umrechnung braucht die Grundfläche (nicht nur das
-Volumen), weil sich die Verdunstung auf die Erdoberfläche bezieht - ein
-flacher, breiter Topf trocknet bei gleichem Volumen schneller aus als ein
-schmaler, tiefer. `PotEditActivity` bietet deshalb wahlweise Durchmesser
-oder Volumen als Eingabe an; `durchmesserFuerVolumen()` rechnet ein
-eingegebenes Volumen mit derselben Kegelstumpf-Annahme in einen
-gleichwertigen Durchmesser um.
+**Startwert der Kapazität.** Eingabe ist die Topf-Grundfläche in cm² statt
+eines Durchmessers, damit sowohl runde als auch eckige Töpfe erfasst werden
+können (rund: π × r², eckig: Länge × Breite). Die Tiefe lässt sich aus einer
+reinen Flächenangabe nicht ableiten und wird über eine charakteristische
+Kantenlänge geschätzt (Höhe ≈ 0.85 × √Grundfläche, Topf als einfache Säule).
+Davon 28 % pflanzenverfügbares Wasser, als Wasserhöhe (mm) ausgedrückt.
+Wichtig: bei einer Säule kürzt sich die Grundfläche dabei heraus - die
+Kapazität in mm hängt nur von der geschätzten Tiefe ab, nicht von der
+Fläche, genau wie ET0 selbst eine reine Tiefenangabe pro Fläche ist. Die
+Fläche bestimmt aber das (informativ angezeigte) Volumen in Litern und geht
+über die geschätzte Tiefe indirekt in die Kapazität ein.
 
 **Prognose.** Das Modell läuft mit der Wetterreihe (Vergangenheit + Prognose)
 stündlich vorwärts, bis der Vorrat die Gießschwelle unterschreitet - das
@@ -340,6 +357,20 @@ des geometrischen Startwerts (`kapazitaetStartwertMm`) begrenzt.
 beim Anlegen aus dem Standort vorbelegt und danach nur von Hand in
 `PotEditActivity` nachjustiert.
 
+**TP357-Sensordaten statt API-Vergangenheit.** Ist einer Pflanze im Topf ein
+Sensor zugeordnet, ersetzt `PlantWaterCalculator.mergeSensorEt0` für alle
+Stunden **in der Vergangenheit** den API-ET0-Wert durch einen aus der
+gemessenen Temperatur/Feuchte abgeleiteten Wert (VPD-Näherung nach Tetens:
+Sättigungsdampfdruck aus der Temperatur, multipliziert mit dem
+Feuchte-Defizit, skaliert auf eine ET0-Größenordnung). Für die **Zukunft**
+bleibt es bei der API-Prognose, da der Sensor die Zukunft naturgemäß nicht
+kennt. Hat ein Topf mehrere Sensoren (über seine Pflanzen), wird pro Stunde
+über alle Sensor-Messwerte gemittelt, die innerhalb von 3 Stunden um den
+Zeitpunkt liegen; ohne passenden Messwert bleibt der API-Wert stehen. Das ist
+ein **Näherungswert**, kein kalibriertes ET0 - er dient nur dazu, die
+Vergangenheits-Bilanz näher am tatsächlichen Mikroklima zu halten, als es
+Wetterdaten von der nächsten API-Wetterstation könnten.
+
 ### Datenquellen
 
 Wetterdaten (ET0, Niederschlag) kommen kostenlos und ohne API-Key von
@@ -351,13 +382,25 @@ höchstens ein Abruf alle 3 Stunden je Standort); schlägt ein Abruf fehl,
 rechnet die App mit dem letzten Cache-Stand weiter und weist in der
 Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
 
+Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`), rein
+passiv per BLE-Scan (`BluetoothLeScanner`/`ScanCallback`, keine
+GATT-Verbindung, keine Kopplung nötig) - "In der Nähe suchen" beim Anlegen
+eines Sensors listet sichtbare BLE-Geräte, "Jetzt abrufen" filtert gezielt
+auf die hinterlegte MAC-Adresse und wartet auf deren nächstes Advertisement.
+⚠️ **Das Parsing der TP357-Messwerte aus den Advertisement-Bytes ist
+reverse-engineered und nicht mit echter Hardware gegen die offizielle
+ThermoPro-App verifiziert** (`SensorBleScanner.parseTp357`, mit
+Plausibilitätsprüfung -40…60 °C / 0…100 % gegen offensichtlich falsche
+Werte). Vor produktivem Einsatz einmal gegen die ThermoPro-App
+gegenprüfen; weicht das Format ab, muss nur `parseTp357` angepasst werden.
+
 ### Grenzen des Modells
 
 - **Licht wird nicht erfasst.** Ein schattiger vs. sonniger Platz mit
   gleichem `standort`-Wert sieht für das Modell identisch aus - das lässt
   sich nur indirekt über einen von Hand nachjustierten `standortfaktor`
   ausgleichen.
-- **Umtopfen und Wachstum brechen die Kalibrierung.** Ein neuer Durchmesser
+- **Umtopfen und Wachstum brechen die Kalibrierung.** Eine neue Grundfläche
   in `PotEditActivity` setzt `kapazitaetMm` bewusst auf den neu berechneten
   geometrischen Startwert zurück - die bisherige Selbstkalibrierung ist
   damit hinfällig und baut sich erst über die nächsten Gießvorgänge wieder
@@ -367,10 +410,12 @@ Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
   Modell** - sie folgen keiner reinen Verdunstungs-Bilanz (das Reservoir
   puffert unabhängig von der Topf-Kapazität), die Prognose wäre für solche
   Töpfe irreführend.
-- Kein Bluetooth-/TP357-Sensor in diesem Schritt - `WeatherRepository` ist
-  aber so gehalten, dass sich eine lokale Mikroklima-Messquelle später
-  danebenstellen ließe. Keine Artendatenbank-Anbindung: die Kategorie
-  bleibt vorerst eine manuelle Auswahl.
+- **TP357-Messwerte sind ein Näherungswert, kein kalibriertes ET0** (siehe
+  oben) - und das Byte-Parsing selbst ist unverifiziert; ein Sensor ohne
+  brauchbare Messwerte liefert schlimmstenfalls stille Fehlwerte statt eines
+  Fehlers (durch die Plausibilitätsprüfung zumindest grob abgefangen). Keine
+  Artendatenbank-Anbindung: die Kategorie bleibt vorerst eine manuelle
+  Auswahl.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -442,11 +487,11 @@ match /notenspiegel_settings/{uid} {
 }
 ```
 
-Für den Gießplaner (Töpfe und Pflanzen für alle eingeloggten Nutzer
-gemeinsam les- und schreibbar - geteilter Garten; der Gieß-Log ist wie
-`discoveries` nur anhängbar und für alle lesbar, angelegt werden dürfen
-aber nur Einträge mit dem eigenen Konto als `uid`; der Wetter-Cache bleibt
-reine Zwischenablage je Konto):
+Für den Gießplaner (Töpfe, Pflanzen und TP357-Sensoren für alle eingeloggten
+Nutzer gemeinsam les- und schreibbar - geteilter Garten; Gieß-Log und
+Sensor-Messreihe sind wie `discoveries` nur anhängbar und für alle lesbar,
+angelegt werden dürfen aber nur Einträge mit dem eigenen Konto als `uid`;
+der Wetter-Cache bleibt reine Zwischenablage je Konto):
 
 ```
 match /pots/{potId} {
@@ -462,6 +507,14 @@ match /waterings/{wateringId} {
 }
 match /weather_cache/{uid} {
   allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+match /sensors/{sensorId} {
+  allow read, write: if request.auth != null;
+}
+match /sensor_readings/{readingId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow update, delete: if false;
 }
 ```
 
@@ -568,10 +621,13 @@ app/src/main/java/com/oliver/zylka/
 │       ├── Standort.kt / PlantCategory.kt / WateringFeedback.kt  # Enums mit Startwerten
 │       ├── Pot.kt / Plant.kt / Watering.kt   # Firestore-Datenklassen
 │       ├── PotRepository.kt / PlantRepository.kt / WateringRepository.kt
-│       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung)
+│       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung, TP357-ET-Proxy)
 │       ├── WeatherRepository.kt      # Open-Meteo-Abruf + weather_cache/{uid}
-│       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter zu Prognosen
-│       └── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
+│       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter(+Sensoren) zu Prognosen
+│       ├── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
+│       ├── Sensor.kt / SensorReading.kt      # TP357-Firestore-Datenklassen
+│       ├── SensorRepository.kt / SensorReadingRepository.kt
+│       └── SensorBleScanner.kt       # BLE-Scan/-Pull eines TP357 (best effort, siehe README oben)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -603,7 +659,11 @@ app/src/main/java/com/oliver/zylka/
 │   ├── PlantAlarmScheduler.kt       # Plant den Alarm für den dringlichsten Topf
 │   ├── PlantAlarmReceiver.kt        # Zeigt Benachrichtigung, plant Folgealarm
 │   ├── PlantBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
-│   └── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
+│   ├── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
+│   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
+│   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
+│   ├── SensorDetailActivity.kt      # Aktueller Messwert + Verlauf, Button "Jetzt abrufen"
+│   └── SensorAdapter.kt / SensorReadingAdapter.kt  # RecyclerView-Adapter
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

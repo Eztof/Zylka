@@ -13,6 +13,7 @@ import com.oliver.zylka.data.plants.PlantWaterCalculator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Zeichnet die simulierte Vorratskurve eines Topfs als gefüllte Linie mit Achsenbeschriftung
@@ -34,11 +35,13 @@ class PotWaterLevelChartView @JvmOverloads constructor(
     private var wateringTimestamps: List<Long> = emptyList()
 
     private val density = context.resources.displayMetrics.density
+
+    private fun dp(value: Float): Float = value * density
     private val dateFormat = SimpleDateFormat("d.M.", Locale.GERMANY)
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 4f * density
+        strokeWidth = dp(5f)
         color = ContextCompat.getColor(context, R.color.brand_primary)
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -47,13 +50,13 @@ class PotWaterLevelChartView @JvmOverloads constructor(
     }
     private val thresholdPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2f * density
+        strokeWidth = dp(2.5f)
         color = ContextCompat.getColor(context, R.color.brand_error)
-        pathEffect = DashPathEffect(floatArrayOf(10f * density, 8f * density), 0f)
+        pathEffect = DashPathEffect(floatArrayOf(dp(10f), dp(8f)), 0f)
     }
     private val nowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2f * density
+        strokeWidth = dp(2f)
         color = ContextCompat.getColor(context, R.color.brand_outline)
     }
     private val wateringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -62,7 +65,7 @@ class PotWaterLevelChartView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.brand_on_surface_variant)
-        textSize = 11f * density
+        textSize = dp(14f)
     }
     private val thresholdLabelPaint = Paint(labelPaint).apply {
         color = ContextCompat.getColor(context, R.color.brand_error)
@@ -88,10 +91,13 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         if (points.size < 2 || kapazitaetMm <= 0.0) return
 
         val leftLabelWidth = labelPaint.measureText("100 %")
-        val left = leftLabelWidth + 6f * density
-        val right = width - 4f * density
-        val top = labelPaint.textSize / 2f
-        val bottom = height - (labelPaint.textSize + 6f * density)
+        val left = leftLabelWidth + dp(10f)
+        val right = width - dp(6f)
+        // "top" ist zugleich die Gitterlinie für 100 % Vorrat - darüber bleibt genau eine
+        // Zeile Platz für deren Beschriftung, ohne am oberen Rand der View abgeschnitten zu
+        // werden.
+        val top = labelPaint.textSize + dp(4f)
+        val bottom = height - (labelPaint.textSize + dp(10f))
         if (right <= left || bottom <= top) return
 
         val minTime = points.first().first
@@ -101,7 +107,7 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         fun x(time: Long): Float = left + (time - minTime).toFloat() / timeSpan * (right - left)
         fun y(vorrat: Double): Float = bottom - (vorrat / kapazitaetMm).toFloat().coerceIn(0f, 1f) * (bottom - top)
 
-        drawYAxis(canvas, left, right, top, y(0.0), y(kapazitaetMm * schwelleAnteil))
+        drawYAxis(canvas, left, right, top, bottom, y(0.0), y(kapazitaetMm * schwelleAnteil))
         drawCurve(canvas, left, bottom, ::x, ::y)
         drawNowMarker(canvas, top, bottom, ::x)
         drawWaterings(canvas, minTime, maxTime, bottom, ::x)
@@ -113,22 +119,30 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         left: Float,
         right: Float,
         top: Float,
+        bottom: Float,
         yZero: Float,
         ySchwelle: Float,
     ) {
         labelPaint.textAlign = Paint.Align.RIGHT
-        val labelX = left - 6f * density
-        canvas.drawText("0 %", labelX, yZero - 2f * density, labelPaint)
-        canvas.drawText("100 %", labelX, top + labelPaint.textSize, labelPaint)
+        val labelX = left - dp(8f)
+        canvas.drawText("0 %", labelX, yZero - dp(3f), labelPaint)
+        canvas.drawText("100 %", labelX, labelPaint.textSize, labelPaint)
 
         canvas.drawLine(left, ySchwelle, right, ySchwelle, thresholdPaint)
-        thresholdLabelPaint.textAlign = Paint.Align.RIGHT
-        canvas.drawText(
-            "${(schwelleAnteil * 100).toInt()} %",
-            labelX,
-            ySchwelle + thresholdLabelPaint.textSize / 3f,
-            thresholdLabelPaint,
-        )
+
+        // Schwelle-Beschriftung nur zeichnen, wenn sie genug Abstand zu den beiden anderen
+        // Marken hat - sonst würden sich die Texte bei einer Schwelle nahe 0 % oder 100 %
+        // überlappen.
+        val minAbstand = labelPaint.textSize * 1.4f
+        if (abs(ySchwelle - yZero) > minAbstand && abs(ySchwelle - top) > minAbstand) {
+            thresholdLabelPaint.textAlign = Paint.Align.RIGHT
+            canvas.drawText(
+                "${(schwelleAnteil * 100).toInt()} %",
+                labelX,
+                ySchwelle + thresholdLabelPaint.textSize / 3f,
+                thresholdLabelPaint,
+            )
+        }
     }
 
     private fun drawCurve(canvas: Canvas, left: Float, bottom: Float, x: (Long) -> Float, y: (Double) -> Float) {
@@ -161,7 +175,7 @@ class PotWaterLevelChartView @JvmOverloads constructor(
     }
 
     private fun drawWaterings(canvas: Canvas, minTime: Long, maxTime: Long, bottom: Float, x: (Long) -> Float) {
-        val radius = 5f * density
+        val radius = dp(6f)
         for (wateredAt in wateringTimestamps) {
             if (wateredAt in minTime..maxTime) {
                 canvas.drawCircle(x(wateredAt), bottom, radius, wateringPaint)
@@ -170,7 +184,7 @@ class PotWaterLevelChartView @JvmOverloads constructor(
     }
 
     private fun drawXAxis(canvas: Canvas, left: Float, right: Float, bottom: Float, minTime: Long, maxTime: Long) {
-        val labelY = bottom + labelPaint.textSize + 4f * density
+        val labelY = bottom + labelPaint.textSize + dp(6f)
         labelPaint.textAlign = Paint.Align.LEFT
         canvas.drawText(dateFormat.format(Date(minTime)), left, labelY, labelPaint)
         labelPaint.textAlign = Paint.Align.RIGHT

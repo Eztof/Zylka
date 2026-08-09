@@ -141,6 +141,8 @@
     <string name="plants_status_due_in_days">Gießen in %1$d Tagen</string>
     <string name="plants_action_watered">Gegossen</string>
     <string name="plants_stale_weather_hint">Wetterdaten veraltet</string>
+    <string name="plants_sensors_title">Temperatursensoren</string>
+    <string name="plants_sensors_empty">Noch keine Sensoren</string>
 
     <!-- Pflanzen: Benachrichtigung -->
     <string name="plants_notification_title">%1$s gießen</string>
@@ -151,11 +153,9 @@
     <string name="pot_edit_title_edit">Topf bearbeiten</string>
     <string name="pot_edit_hint_name">Name</string>
     <string name="pot_edit_label_groesse">Größe</string>
-    <string name="pot_edit_hint_durchmesser">Durchmesser</string>
-    <string name="pot_edit_suffix_cm">cm</string>
-    <string name="pot_edit_hint_volumen">Volumen</string>
-    <string name="pot_edit_suffix_liter">L</string>
-    <string name="pot_edit_groesse_caption">Durchmesser oben am Topf oder Volumen - eins reicht, der Rest wird umgerechnet. Nötig, weil die Verdunstung von der Erdoberfläche abhängt, nicht nur von der Literzahl.</string>
+    <string name="pot_edit_hint_grundflaeche">Grundfläche</string>
+    <string name="pot_edit_suffix_cm2">cm²</string>
+    <string name="pot_edit_groesse_caption">Fläche der Erdoberfläche oben im Topf. Rund: π × r² (r = halber Durchmesser). Eckig: Länge × Breite.</string>
     <string name="pot_edit_capacity_preview_empty">–</string>
     <string name="pot_edit_capacity_preview">Kapazität ≈ %1$s mm</string>
     <string name="pot_edit_label_standort">Standort</string>
@@ -167,7 +167,7 @@
     <string name="pot_edit_location_unavailable">Standort nicht verfügbar</string>
     <string name="pot_edit_label_plants">Pflanzen</string>
     <string name="pot_edit_action_add_plant">Pflanze hinzufügen</string>
-    <string name="pot_edit_error_required">Name und Durchmesser fehlen</string>
+    <string name="pot_edit_error_required">Name und Grundfläche fehlen</string>
     <string name="pot_edit_delete_confirm">Topf löschen?</string>
 
     <!-- Pflanzen: Pflanze anlegen/bearbeiten -->
@@ -179,6 +179,9 @@
     <string name="plant_edit_hint_groessenfaktor">Größenfaktor</string>
     <string name="plant_edit_hint_anzahl">Anzahl</string>
     <string name="plant_edit_hint_caption">Größenfaktor: 1 = normal groß. Anzahl: mehrere gleiche Pflanzen als ein Eintrag.</string>
+    <string name="plant_edit_hint_sensor">Sensor</string>
+    <string name="plant_edit_sensor_none">Kein Sensor</string>
+    <string name="plant_edit_sensor_caption">Optional: TP357-Sensor für Temperatur/Feuchte. Mehrere Pflanzen können sich einen teilen.</string>
     <string name="plant_edit_error_name_required">Name fehlt</string>
     <string name="plant_edit_delete_confirm">Pflanze löschen?</string>
 
@@ -189,4 +192,29 @@
     <string name="pot_detail_history_empty">Noch nicht gegossen.</string>
     <string name="watering_history_unknown_time">Zeitpunkt unbekannt</string>
     <string name="watering_history_no_feedback">–</string>
+
+    <!-- Pflanzen: Sensoren (TP357) -->
+    <string name="sensors_title">Sensoren</string>
+    <string name="sensors_search_hint">Suchen</string>
+    <string name="sensors_empty_hint">Noch keine Sensoren.</string>
+    <string name="sensors_action_add">Sensor hinzufügen</string>
+    <string name="sensor_reading_summary">%1$.1f °C · %2$.0f %% · %3$s</string>
+    <string name="sensor_no_reading">Noch keine Messung</string>
+    <string name="sensor_edit_title_new">Neuer Sensor</string>
+    <string name="sensor_edit_title_edit">Sensor bearbeiten</string>
+    <string name="sensor_edit_hint_name">Name</string>
+    <string name="sensor_edit_hint_mac">Bluetooth-Adresse</string>
+    <string name="sensor_edit_action_scan">Gerät suchen</string>
+    <string name="sensor_scan_title">Gerät auswählen</string>
+    <string name="sensor_scan_empty">Keine Geräte gefunden</string>
+    <string name="sensor_unknown_device">Unbekanntes Gerät</string>
+    <string name="sensor_edit_error_required">Name und Bluetooth-Adresse fehlen</string>
+    <string name="sensor_edit_delete_confirm">Sensor löschen?</string>
+    <string name="sensor_bluetooth_disabled">Bluetooth ist ausgeschaltet</string>
+    <string name="sensor_detail_action_pull">Jetzt abrufen</string>
+    <string name="sensor_detail_label_history">Verlauf</string>
+    <string name="sensor_detail_history_empty">Noch keine Messwerte.</string>
+    <string name="sensor_reading_values">%1$.1f °C · %2$.0f %%</string>
+    <string name="sensor_pull_failed">Kein Messwert empfangen</string>
+    <string name="sensor_pull_success">Messwert aktualisiert</string>
 </resources>

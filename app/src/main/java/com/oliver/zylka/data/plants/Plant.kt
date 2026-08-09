@@ -5,7 +5,10 @@ package com.oliver.zylka.data.plants
  * Anlegen aus [kategorie] vorbelegt, ist aber frei überschreibbar; [groessenfaktor] skaliert
  * zusätzlich nach tatsächlicher Pflanzengröße (Default 1.0). [anzahl] (Default 1) steht für
  * mehrere gleiche Pflanzen im selben Topf (z. B. 10 Tomatenpflanzen als ein Eintrag statt 10
- * einzelner) und geht als Faktor in den Verdunstungsbedarf ein.
+ * einzelner) und geht als Faktor in den Verdunstungsbedarf ein. [sensorId] ordnet optional
+ * einen [Sensor] zu (mehrere Pflanzen können sich einen Sensor teilen, z. B. eine
+ * Raumtemperatur-Messung für alle Zimmerpflanzen) - dessen Messungen fließen dann für die
+ * Vergangenheit statt der API-Prognose in die Verdunstungsberechnung des Topfs ein.
  */
 data class Plant(
     val id: String = "",
@@ -16,4 +19,5 @@ data class Plant(
     val kcBasis: Double = PlantCategory.STANDARD.kcBasisDefault,
     val groessenfaktor: Double = 1.0,
     val anzahl: Int = 1,
+    val sensorId: String? = null,
 )

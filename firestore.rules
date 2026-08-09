@@ -57,5 +57,19 @@ service cloud.firestore {
     match /weather_cache/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Bluetooth-Sensoren (TP357): wie pots/plants geteilt zwischen allen eingeloggten
+    // Nutzern.
+    match /sensors/{sensorId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Sensor-Messwerte: append-only wie waterings, für alle eingeloggten Nutzer lesbar.
+    // Anlegen darf man nur Einträge, die auf einen selbst eingetragen sind.
+    match /sensor_readings/{readingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

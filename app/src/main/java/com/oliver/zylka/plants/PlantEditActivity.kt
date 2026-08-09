@@ -3,6 +3,7 @@ package com.oliver.zylka.plants
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,20 +15,26 @@ import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.plants.Plant
 import com.oliver.zylka.data.plants.PlantCategory
 import com.oliver.zylka.data.plants.PlantRepository
+import com.oliver.zylka.data.plants.Sensor
+import com.oliver.zylka.data.plants.SensorRepository
 import com.oliver.zylka.databinding.ActivityPlantEditBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
 import kotlinx.coroutines.launch
 
 /** Pflanze anlegen/bearbeiten: Name, Kategorie (belegt den Verdunstungsfaktor `kcBasis` vor,
- * frei überschreibbar), Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag). */
+ * frei überschreibbar), Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag),
+ * optional ein TP357-Sensor (mehrere Pflanzen können sich einen Sensor teilen). */
 class PlantEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPlantEditBinding
     private val authRepository = AuthRepository()
     private val plantRepository = PlantRepository()
+    private val sensorRepository = SensorRepository()
 
     private lateinit var potId: String
     private var plant = Plant()
+    private var sensors: List<Sensor> = emptyList()
+    private var selectedSensorId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,12 +51,15 @@ class PlantEditActivity : AppCompatActivity() {
         binding.buttonSave.setOnClickListener { save() }
         binding.buttonDelete.setOnClickListener { confirmDelete() }
 
-        if (plantId == null) {
-            title = getString(R.string.plant_edit_title_new)
-            applyPlantToForm(Plant(potId = potId))
-        } else {
-            binding.buttonDelete.isVisible = true
-            lifecycleScope.launch {
+        lifecycleScope.launch {
+            sensors = sensorRepository.loadSensors().sortedBy { it.name.lowercase() }
+            setUpSensorDropdown()
+
+            if (plantId == null) {
+                title = getString(R.string.plant_edit_title_new)
+                applyPlantToForm(Plant(potId = potId))
+            } else {
+                binding.buttonDelete.isVisible = true
                 val loaded = plantRepository.getPlant(plantId) ?: Plant(id = plantId, potId = potId)
                 plant = loaded
                 title = getString(R.string.plant_edit_title_edit)
@@ -76,6 +86,18 @@ class PlantEditActivity : AppCompatActivity() {
         binding.inputKcBasis.setText(formatDouble(p.kcBasis))
         binding.inputGroessenfaktor.setText(formatDouble(p.groessenfaktor))
         binding.inputAnzahl.setText(p.anzahl.toString())
+
+        selectedSensorId = p.sensorId
+        val label = sensors.firstOrNull { it.id == p.sensorId }?.name ?: getString(R.string.plant_edit_sensor_none)
+        binding.inputSensor.setText(label, false)
+    }
+
+    private fun setUpSensorDropdown() {
+        val labels = listOf(getString(R.string.plant_edit_sensor_none)) + sensors.map { it.name }
+        binding.inputSensor.setAdapter(ArrayAdapter(this, android.R.layout.simple_list_item_1, labels))
+        binding.inputSensor.setOnItemClickListener { _, _, position, _ ->
+            selectedSensorId = if (position == 0) null else sensors[position - 1].id
+        }
     }
 
     private fun save() {
@@ -99,6 +121,7 @@ class PlantEditActivity : AppCompatActivity() {
             kcBasis = kcBasis,
             groessenfaktor = groessenfaktor,
             anzahl = anzahl,
+            sensorId = selectedSensorId,
         )
         lifecycleScope.launch {
             plantRepository.save(toSave)
