@@ -56,6 +56,7 @@ class PlantRepository(private val db: FirebaseFirestore = FirebaseFirestore.getI
         "kcBasis" to kcBasis,
         "groessenfaktor" to groessenfaktor,
         "anzahl" to anzahl,
+        "sensorId" to sensorId,
     )
 
     private fun DocumentSnapshot.toPlantOrNull(): Plant? {
@@ -71,6 +72,7 @@ class PlantRepository(private val db: FirebaseFirestore = FirebaseFirestore.getI
             kcBasis = getDouble("kcBasis") ?: kategorie.kcBasisDefault,
             groessenfaktor = getDouble("groessenfaktor") ?: 1.0,
             anzahl = getLong("anzahl")?.toInt()?.coerceAtLeast(1) ?: 1,
+            sensorId = getString("sensorId")?.takeIf { it.isNotBlank() },
         )
     }
 

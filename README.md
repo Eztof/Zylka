@@ -249,10 +249,16 @@ selbst nach.
   Prognose der Gerätestandort verwendet), zugeordnete Pflanzen.
 - **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Kategorie,
   Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag statt
-  einzeln anzulegen).
+  einzeln anzulegen), optional ein TP357-Sensor (mehrere Pflanzen können sich
+  einen teilen, z. B. für die Raumtemperatur).
 - **Topf-Verlauf** (`PotDetailActivity`): alle Gieß-Vorgänge sowie die
   simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
   Vorbild `KennzeichenMapView`).
+- **Temperatursensoren** (`SensorsActivity`, verlinkt von der Startseite):
+  Liste aller angelegten TP357-Sensoren mit letztem Messwert, durchsuchbar.
+  `SensorEditActivity` legt Sensoren an/benennt sie um (per Hand oder über
+  eine Bluetooth-Umgebungssuche), `SensorDetailActivity` zeigt den aktuellen
+  Messwert, pullt per Knopfdruck eine neue Messung und listet die Chronik.
 
 ### Datenmodell (Firestore, live synchronisiert)
 
@@ -274,7 +280,8 @@ plants/{plantId}
   uid (wer angelegt hat), potId, name,
   kategorie: SUKKULENTE | MEDITERRAN | STANDARD | DURSTIG | GEMUESE,
   kcBasis, groessenfaktor (Default 1.0), anzahl (Default 1 - mehrere
-  gleiche Pflanzen als ein Eintrag statt einzeln anzulegen)
+  gleiche Pflanzen als ein Eintrag statt einzeln anzulegen),
+  sensorId (optional, verweist auf sensors/{sensorId})
 
 waterings/{autoId}          // append-only Log, wie discoveries
   uid (wer gegossen hat), potId, wateredAt (Server-Timestamp),
@@ -282,13 +289,23 @@ waterings/{autoId}          // append-only Log, wie discoveries
 
 weather_cache/{uid}         // ein Dokument je Nutzer, ein Eintrag je Standort
   locations: { "<lat,lon gerundet>": { fetchedAt, latitude, longitude, hourly } }
+
+sensors/{sensorId}
+  uid (wer angelegt hat), name, macAddress,
+  lastTemperatureC, lastHumidityPercent, lastMeasuredAt (denormalisiert für
+  die Startseiten-Kachel, wird bei jedem Pull aktualisiert)
+
+sensor_readings/{autoId}    // append-only Log, wie waterings
+  uid (wer gepullt hat), sensorId, measuredAt (Server-Timestamp),
+  temperatureC, humidityPercent
 ```
 
-`pots`, `plants` und `waterings` sind zwischen allen eingeloggten Nutzern
-geteilt (gemeinsamer Garten, z. B. für dich und deine Partnerin) - jeder
-sieht und bearbeitet alle Töpfe und Pflanzen, unabhängig davon, wer sie
-angelegt hat; das `uid`-Feld ist reine Herkunfts-Information. Nur der
-Wetter-Cache bleibt strikt pro Konto (siehe Firestore-Regeln unten).
+`pots`, `plants`, `waterings`, `sensors` und `sensor_readings` sind zwischen
+allen eingeloggten Nutzern geteilt (gemeinsamer Garten, z. B. für dich und
+deine Partnerin) - jeder sieht und bearbeitet alle Töpfe, Pflanzen und
+Sensoren, unabhängig davon, wer sie angelegt hat; das `uid`-Feld ist reine
+Herkunfts-Information. Nur der Wetter-Cache bleibt strikt pro Konto (siehe
+Firestore-Regeln unten).
 
 ### Rechenweg (`PlantWaterCalculator`, ohne Android-Abhängigkeiten)
 
@@ -340,6 +357,20 @@ des geometrischen Startwerts (`kapazitaetStartwertMm`) begrenzt.
 beim Anlegen aus dem Standort vorbelegt und danach nur von Hand in
 `PotEditActivity` nachjustiert.
 
+**TP357-Sensordaten statt API-Vergangenheit.** Ist einer Pflanze im Topf ein
+Sensor zugeordnet, ersetzt `PlantWaterCalculator.mergeSensorEt0` für alle
+Stunden **in der Vergangenheit** den API-ET0-Wert durch einen aus der
+gemessenen Temperatur/Feuchte abgeleiteten Wert (VPD-Näherung nach Tetens:
+Sättigungsdampfdruck aus der Temperatur, multipliziert mit dem
+Feuchte-Defizit, skaliert auf eine ET0-Größenordnung). Für die **Zukunft**
+bleibt es bei der API-Prognose, da der Sensor die Zukunft naturgemäß nicht
+kennt. Hat ein Topf mehrere Sensoren (über seine Pflanzen), wird pro Stunde
+über alle Sensor-Messwerte gemittelt, die innerhalb von 3 Stunden um den
+Zeitpunkt liegen; ohne passenden Messwert bleibt der API-Wert stehen. Das ist
+ein **Näherungswert**, kein kalibriertes ET0 - er dient nur dazu, die
+Vergangenheits-Bilanz näher am tatsächlichen Mikroklima zu halten, als es
+Wetterdaten von der nächsten API-Wetterstation könnten.
+
 ### Datenquellen
 
 Wetterdaten (ET0, Niederschlag) kommen kostenlos und ohne API-Key von
@@ -350,6 +381,18 @@ Antwort wird in Firestore zwischengespeichert (`weather_cache/{uid}`,
 höchstens ein Abruf alle 3 Stunden je Standort); schlägt ein Abruf fehl,
 rechnet die App mit dem letzten Cache-Stand weiter und weist in der
 Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
+
+Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`), rein
+passiv per BLE-Scan (`BluetoothLeScanner`/`ScanCallback`, keine
+GATT-Verbindung, keine Kopplung nötig) - "In der Nähe suchen" beim Anlegen
+eines Sensors listet sichtbare BLE-Geräte, "Jetzt abrufen" filtert gezielt
+auf die hinterlegte MAC-Adresse und wartet auf deren nächstes Advertisement.
+⚠️ **Das Parsing der TP357-Messwerte aus den Advertisement-Bytes ist
+reverse-engineered und nicht mit echter Hardware gegen die offizielle
+ThermoPro-App verifiziert** (`SensorBleScanner.parseTp357`, mit
+Plausibilitätsprüfung -40…60 °C / 0…100 % gegen offensichtlich falsche
+Werte). Vor produktivem Einsatz einmal gegen die ThermoPro-App
+gegenprüfen; weicht das Format ab, muss nur `parseTp357` angepasst werden.
 
 ### Grenzen des Modells
 
@@ -367,10 +410,12 @@ Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
   Modell** - sie folgen keiner reinen Verdunstungs-Bilanz (das Reservoir
   puffert unabhängig von der Topf-Kapazität), die Prognose wäre für solche
   Töpfe irreführend.
-- Kein Bluetooth-/TP357-Sensor in diesem Schritt - `WeatherRepository` ist
-  aber so gehalten, dass sich eine lokale Mikroklima-Messquelle später
-  danebenstellen ließe. Keine Artendatenbank-Anbindung: die Kategorie
-  bleibt vorerst eine manuelle Auswahl.
+- **TP357-Messwerte sind ein Näherungswert, kein kalibriertes ET0** (siehe
+  oben) - und das Byte-Parsing selbst ist unverifiziert; ein Sensor ohne
+  brauchbare Messwerte liefert schlimmstenfalls stille Fehlwerte statt eines
+  Fehlers (durch die Plausibilitätsprüfung zumindest grob abgefangen). Keine
+  Artendatenbank-Anbindung: die Kategorie bleibt vorerst eine manuelle
+  Auswahl.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -442,11 +487,11 @@ match /notenspiegel_settings/{uid} {
 }
 ```
 
-Für den Gießplaner (Töpfe und Pflanzen für alle eingeloggten Nutzer
-gemeinsam les- und schreibbar - geteilter Garten; der Gieß-Log ist wie
-`discoveries` nur anhängbar und für alle lesbar, angelegt werden dürfen
-aber nur Einträge mit dem eigenen Konto als `uid`; der Wetter-Cache bleibt
-reine Zwischenablage je Konto):
+Für den Gießplaner (Töpfe, Pflanzen und TP357-Sensoren für alle eingeloggten
+Nutzer gemeinsam les- und schreibbar - geteilter Garten; Gieß-Log und
+Sensor-Messreihe sind wie `discoveries` nur anhängbar und für alle lesbar,
+angelegt werden dürfen aber nur Einträge mit dem eigenen Konto als `uid`;
+der Wetter-Cache bleibt reine Zwischenablage je Konto):
 
 ```
 match /pots/{potId} {
@@ -462,6 +507,14 @@ match /waterings/{wateringId} {
 }
 match /weather_cache/{uid} {
   allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+match /sensors/{sensorId} {
+  allow read, write: if request.auth != null;
+}
+match /sensor_readings/{readingId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow update, delete: if false;
 }
 ```
 
@@ -568,10 +621,13 @@ app/src/main/java/com/oliver/zylka/
 │       ├── Standort.kt / PlantCategory.kt / WateringFeedback.kt  # Enums mit Startwerten
 │       ├── Pot.kt / Plant.kt / Watering.kt   # Firestore-Datenklassen
 │       ├── PotRepository.kt / PlantRepository.kt / WateringRepository.kt
-│       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung)
+│       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung, TP357-ET-Proxy)
 │       ├── WeatherRepository.kt      # Open-Meteo-Abruf + weather_cache/{uid}
-│       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter zu Prognosen
-│       └── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
+│       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter(+Sensoren) zu Prognosen
+│       ├── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
+│       ├── Sensor.kt / SensorReading.kt      # TP357-Firestore-Datenklassen
+│       ├── SensorRepository.kt / SensorReadingRepository.kt
+│       └── SensorBleScanner.kt       # BLE-Scan/-Pull eines TP357 (best effort, siehe README oben)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -603,7 +659,11 @@ app/src/main/java/com/oliver/zylka/
 │   ├── PlantAlarmScheduler.kt       # Plant den Alarm für den dringlichsten Topf
 │   ├── PlantAlarmReceiver.kt        # Zeigt Benachrichtigung, plant Folgealarm
 │   ├── PlantBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
-│   └── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
+│   ├── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
+│   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
+│   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
+│   ├── SensorDetailActivity.kt      # Aktueller Messwert + Verlauf, Button "Jetzt abrufen"
+│   └── SensorAdapter.kt / SensorReadingAdapter.kt  # RecyclerView-Adapter
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

@@ -1,5 +1,7 @@
 package com.oliver.zylka.data.plants
 
+import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.sqrt
 
 /** Eine stündliche Wetter-Messung/-Prognose: Referenzverdunstung ET0 (mm/h) und
@@ -8,6 +10,15 @@ data class HourlySample(
     val epochMillis: Long,
     val et0MmPerHour: Double,
     val precipitationMm: Double,
+)
+
+/** Eine über Bluetooth gemessene Temperatur/Feuchte zu einem Zeitpunkt, einem Sensor
+ * zugeordnet (mehrere Sensoren können an einem Topf hängen, siehe [Plant.sensorId]). */
+data class SensorSample(
+    val sensorId: String,
+    val epochMillis: Long,
+    val temperatureC: Double,
+    val humidityPercent: Double,
 )
 
 /** Ergebnis der geometrischen Startkapazitäts-Berechnung aus der Topf-Grundfläche. */
@@ -41,11 +52,63 @@ object PlantWaterCalculator {
     private const val KAPAZITAET_MAX_ANTEIL = 5.0
     private const val MILLIS_PRO_STUNDE = 3_600_000.0
 
+    /** Näherungsfaktor mm ET0 pro Stunde je kPa Sättigungsdampfdruckdefizit (VPD) - grobe
+     * Größenordnung typischer ET0-Werte bei moderatem Wind, siehe [et0VonSensor]. */
+    private const val VPD_ET0_FAKTOR = 0.3
+
+    /** Wie weit eine Sensor-Messung von einer Wetter-Stunde entfernt sein darf, um ihr noch
+     * zugeordnet zu werden (siehe [mergeSensorEt0]). */
+    private const val MAX_SENSOR_MATCH_MILLIS = 3 * MILLIS_PRO_STUNDE
+
     /** Kc_topf = Summe über alle Pflanzen im Topf von (kcBasis × groessenfaktor × anzahl). */
     fun kcTopf(plants: List<Plant>): Double = plants.sumOf { it.kcBasis * it.groessenfaktor * it.anzahl }
 
     /** ET_topf(t) = ET0(t) × standortfaktor × Kc_topf */
     fun etTopf(et0: Double, standortfaktor: Double, kcTopf: Double): Double = et0 * standortfaktor * kcTopf
+
+    /**
+     * Näherungsweise Referenzverdunstung (mm/h) aus Temperatur und relativer Luftfeuchte
+     * eines TP357-Sensors, über das Sättigungsdampfdruckdefizit (VPD - "wie durstig ist die
+     * Luft"), mit derselben Tetens-Formel für den Sättigungsdampfdruck wie in FAO-56. Deutlich
+     * einfacher als eine echte Penman-Monteith-ET0 (kein Wind, keine Strahlung), aber die
+     * Selbstkalibrierung ([recalibrateCapacity]/`standortfaktor`) gleicht systematische
+     * Abweichungen ohnehin aus - die Formel muss vor allem die Richtung stimmen: wärmer/
+     * trockener → mehr Verdunstung.
+     */
+    fun et0VonSensor(temperatureC: Double, humidityPercent: Double): Double {
+        val saettigungsdampfdruckKPa = 0.6108 * exp(17.27 * temperatureC / (temperatureC + 237.3))
+        val vpdKPa = saettigungsdampfdruckKPa * (1.0 - (humidityPercent / 100.0).coerceIn(0.0, 1.0))
+        return (VPD_ET0_FAKTOR * vpdKPa).coerceAtLeast(0.0)
+    }
+
+    /**
+     * Ersetzt in [hourly] für Zeitpunkte bis [nowEpochMillis] (Vergangenheit) die API-ET0
+     * durch eine aus [sensorSamples] abgeleitete ET0 ([et0VonSensor]), sofern für diese
+     * Stunde eine Messung höchstens [MAX_SENSOR_MATCH_MILLIS] entfernt liegt - sonst bleibt
+     * der API-Wert stehen. Für Zeitpunkte nach "jetzt" (Prognose) wird immer die API-ET0
+     * verwendet, kein Sensor kann die Zukunft messen. Hängen mehrere Sensoren am Topf (mehrere
+     * Pflanzen mit unterschiedlichem Sensor), wird pro Stunde über deren jeweils nächstgelegene
+     * Messung gemittelt.
+     */
+    fun mergeSensorEt0(
+        hourly: List<HourlySample>,
+        sensorSamples: List<SensorSample>,
+        nowEpochMillis: Long,
+    ): List<HourlySample> {
+        if (sensorSamples.isEmpty()) return hourly
+        val bySensor = sensorSamples.groupBy { it.sensorId }
+        return hourly.map { sample ->
+            if (sample.epochMillis > nowEpochMillis) return@map sample
+            val naechsteJeSensor = bySensor.values.mapNotNull { readings ->
+                readings.minByOrNull { abs(it.epochMillis - sample.epochMillis) }
+                    ?.takeIf { abs(it.epochMillis - sample.epochMillis) <= MAX_SENSOR_MATCH_MILLIS }
+            }
+            if (naechsteJeSensor.isEmpty()) return@map sample
+            val temperaturMittel = naechsteJeSensor.map { it.temperatureC }.average()
+            val feuchteMittel = naechsteJeSensor.map { it.humidityPercent }.average()
+            sample.copy(et0MmPerHour = et0VonSensor(temperaturMittel, feuchteMittel))
+        }
+    }
 
     /** vorrat(t) = clamp(vorrat(t-1) − ET_topf(t) + regen(t) × regenfaktor, 0, kapazitaetMm) */
     fun step(vorratVorher: Double, etTopf: Double, regenMm: Double, regenfaktor: Double, kapazitaetMm: Double): Double =

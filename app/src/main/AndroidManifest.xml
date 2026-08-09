@@ -15,6 +15,14 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Pflanzen: TP357-Bluetooth-Sensoren auslesen (nur aktiver Scan bei Nutzeraktion,
+         keine Dauerverbindung). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -93,6 +101,18 @@
 
         <activity
             android:name=".plants.PotDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.SensorsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.SensorEditActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.SensorDetailActivity"
             android:exported="false" />
 
         <receiver

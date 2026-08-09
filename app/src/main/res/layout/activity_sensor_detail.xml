@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
         android:elevation="2dp"
-        tools:title="Kübel Terrasse" />
+        tools:title="Wohnzimmer" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,35 +25,51 @@
         android:paddingEnd="16dp">
 
         <TextView
-            android:id="@+id/text_status_summary"
+            android:id="@+id/text_mac"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="@color/brand_on_surface"
-            tools:text="Vorrat: 62 % · Gießen in 3 Tagen" />
-
-        <TextView
-            android:id="@+id/text_no_weather_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/pot_detail_no_weather_hint"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="@color/brand_outline"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            tools:text="AA:BB:CC:DD:EE:FF" />
 
-        <com.oliver.zylka.plants.PotWaterLevelChartView
-            android:id="@+id/chart_water_level"
+        <TextView
+            android:id="@+id/text_current_reading"
             android:layout_width="match_parent"
-            android:layout_height="280dp"
-            android:layout_marginTop="12dp" />
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="@color/brand_on_surface"
+            tools:text="21,4 °C · 48 % · vor 2 Std." />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_pull"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sensor_detail_action_pull"
+                app:cornerRadius="16dp" />
+
+            <ProgressBar
+                android:id="@+id/progress_pull"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="14dp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="@string/pot_detail_label_history"
+            android:text="@string/sensor_detail_label_history"
             android:textAppearance="?attr/textAppearanceTitleSmall"
             android:textColor="@color/brand_on_surface" />
 
@@ -62,7 +78,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="@string/pot_detail_history_empty"
+            android:text="@string/sensor_detail_history_empty"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="@color/brand_on_surface_variant"
             android:visibility="gone"
@@ -76,6 +92,6 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:padding="16dp"
-        tools:listitem="@layout/item_watering_history" />
+        tools:listitem="@layout/item_sensor_reading" />
 
 </LinearLayout>

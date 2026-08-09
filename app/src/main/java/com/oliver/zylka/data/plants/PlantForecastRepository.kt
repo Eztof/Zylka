@@ -37,6 +37,7 @@ class PlantForecastRepository(
     private val plantRepository: PlantRepository = PlantRepository(),
     private val wateringRepository: WateringRepository = WateringRepository(),
     private val weatherRepository: WeatherRepository = WeatherRepository(),
+    private val sensorReadingRepository: SensorReadingRepository = SensorReadingRepository(),
 ) {
 
     private val locationHelper = LocationHelper(context)
@@ -87,12 +88,14 @@ class PlantForecastRepository(
         if (weather == null || weather.hourly.isEmpty()) {
             return unresolvedForecast(pot, plants, isStale = true, hasLocation = true)
         }
+        val sensorSamples = loadSensorSamples(plants)
+        val hourly = PlantWaterCalculator.mergeSensorEt0(weather.hourly, sensorSamples, nowEpochMillis)
 
         val lastWatering = wateringRepository.loadWaterings(pot.id).maxByOrNull { it.wateredAt?.time ?: 0L }
         val simulation = PlantWaterCalculator.computeForecast(
             wateredAtEpochMillis = lastWatering?.wateredAt?.time,
             nowEpochMillis = nowEpochMillis,
-            hourly = weather.hourly,
+            hourly = hourly,
             standortfaktor = pot.standortfaktor,
             regenfaktor = pot.standort.regenfaktor,
             kcTopf = PlantWaterCalculator.kcTopf(plants),
@@ -115,6 +118,18 @@ class PlantForecastRepository(
             hasLocation = true,
             verlauf = simulation.verlauf,
         )
+    }
+
+    /** Lädt die Messwerte aller Sensoren, die einer der [plants] zugeordnet sind (mehrere
+     * Pflanzen können denselben Sensor teilen - dann wird er nur einmal geladen). */
+    private suspend fun loadSensorSamples(plants: List<Plant>): List<SensorSample> {
+        val sensorIds = plants.mapNotNull { it.sensorId }.distinct()
+        if (sensorIds.isEmpty()) return emptyList()
+        return sensorIds.flatMap { sensorReadingRepository.loadReadings(it) }
+            .mapNotNull { reading ->
+                val measuredAt = reading.measuredAt?.time ?: return@mapNotNull null
+                SensorSample(reading.sensorId, measuredAt, reading.temperatureC, reading.humidityPercent)
+            }
     }
 
     private fun unresolvedForecast(pot: Pot, plants: List<Plant>, isStale: Boolean, hasLocation: Boolean) = PotForecast(
