@@ -11,7 +11,10 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -22,6 +25,17 @@ data class DiscoveredDevice(val macAddress: String, val name: String?, val rssi:
 
 /** Eine über BLE ausgelesene Momentaufnahme von Temperatur/Feuchte. */
 data class BleReading(val temperatureC: Double, val humidityPercent: Double)
+
+/** Ein rohes BLE-Werbepaket für die Diagnose (siehe [SensorBleScanner.scanRawFlow]): alles,
+ * was ankommt, unabhängig davon, ob es sich als TP357 erkennen lässt - damit sich neue Geräte
+ * per Hex-Dump identifizieren und ihr Byte-Format ableiten lässt. */
+data class RawScanResult(
+    val macAddress: String,
+    val name: String?,
+    val rssi: Int,
+    val rawBytesHex: String,
+    val manufacturerData: List<String>,
+)
 
 /**
  * Liest ThermoPro TP357-Bluetooth-Thermo-Hygrometer über passives BLE-Advertisement-Scannen
@@ -93,6 +107,56 @@ class SensorBleScanner(private val context: Context) {
         runCatching { scanner.stopScan(callback) }
         return found.values.sortedByDescending { it.rssi }
     }
+
+    /**
+     * Ungefilterte Dauersuche für die Diagnose (`SensorDiagnosticActivity`): läuft, solange der
+     * Flow gesammelt wird, und liefert für **jedes** empfangene Werbepaket den vollen Hex-Dump
+     * - auch von Geräten, die [parseTp357] nicht erkennt. Damit lässt sich das TP357 anhand
+     * seiner Nähe/RSSI identifizieren und das tatsächliche Byte-Format ableiten, falls
+     * [tryParseManufacturerData] daneben liegt.
+     */
+    @SuppressLint("MissingPermission")
+    fun scanRawFlow(): Flow<RawScanResult> = callbackFlow {
+        if (!hasPermissions()) {
+            close(IllegalStateException("Bluetooth-Berechtigungen fehlen"))
+            return@callbackFlow
+        }
+        val scanner = bluetoothAdapter?.takeIf { it.isEnabled }?.bluetoothLeScanner
+        if (scanner == null) {
+            close(IllegalStateException("Bluetooth ist ausgeschaltet"))
+            return@callbackFlow
+        }
+        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+        val callback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                trySend(result.toRawScanResult())
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                close(IllegalStateException("BLE-Scan fehlgeschlagen (Code $errorCode)"))
+            }
+        }
+        scanner.startScan(emptyList(), settings, callback)
+        awaitClose { runCatching { scanner.stopScan(callback) } }
+    }
+
+    private fun ScanResult.toRawScanResult(): RawScanResult {
+        val record = scanRecord
+        val manufacturerData = record?.manufacturerSpecificData?.let { sparse ->
+            (0 until sparse.size()).map { i ->
+                "${"%04X".format(sparse.keyAt(i))}: ${sparse.valueAt(i).toHexString()}"
+            }
+        }.orEmpty()
+        return RawScanResult(
+            macAddress = device.address,
+            name = record?.deviceName ?: device.name,
+            rssi = rssi,
+            rawBytesHex = record?.bytes?.toHexString().orEmpty(),
+            manufacturerData = manufacturerData,
+        )
+    }
+
+    private fun ByteArray.toHexString(): String = joinToString(" ") { "%02X".format(it) }
 
     /** Läuft die AD-Struktur eines BLE-Werbepakets durch ([Länge][Typ][Daten…]) und versucht,
      * TP357-Herstellerdaten (Typ 0xFF) zu erkennen und zu parsen. */

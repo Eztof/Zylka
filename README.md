@@ -393,6 +393,20 @@ ThermoPro-App verifiziert** (`SensorBleScanner.parseTp357`, mit
 Plausibilitätsprüfung -40…60 °C / 0…100 % gegen offensichtlich falsche
 Werte). Vor produktivem Einsatz einmal gegen die ThermoPro-App
 gegenprüfen; weicht das Format ab, muss nur `parseTp357` angepasst werden.
+Zum Identifizieren eines Sensors und Ableiten seines tatsächlichen
+Byte-Formats gibt es unter „Sensoren" → „Bluetooth-Diagnose"
+(`SensorDiagnosticActivity`) einen Rohdaten-Modus: listet alle BLE-Geräte
+in der Nähe live mit Name/MAC/Signalstärke und dem vollen Hex-Dump ihrer
+Werbedaten, unabhängig davon, ob `parseTp357` sie erkennt.
+
+**Kein Gerät gefunden?** `BLUETOOTH_SCAN` ist im Manifest mit
+`android:usesPermissionFlags="neverForLocation"` deklariert - ohne dieses
+Flag verlangt Android ab API 31 zusätzlich `ACCESS_FINE_LOCATION` und
+eingeschaltete Standortdienste, sonst liefert der Scan wortlos keine
+Ergebnisse. Weitere mögliche Ursachen: Bluetooth am Sensor/Handy aus, der
+Sensor sendet keine (oder keine für das App-Scanfenster sichtbaren)
+Advertisements, oder das Handy hat den Scan im Hintergrund gedrosselt -
+Bildschirm der App dabei im Vordergrund halten.
 
 ### Grenzen des Modells
 
@@ -663,7 +677,8 @@ app/src/main/java/com/oliver/zylka/
 │   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
 │   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
 │   ├── SensorDetailActivity.kt      # Aktueller Messwert + Verlauf, Button "Jetzt abrufen"
-│   └── SensorAdapter.kt / SensorReadingAdapter.kt  # RecyclerView-Adapter
+│   ├── SensorDiagnosticActivity.kt  # Rohdaten-Diagnose: alle BLE-Geräte live mit Hex-Dump
+│   └── SensorAdapter.kt / SensorReadingAdapter.kt / BleDiagnosticAdapter.kt  # RecyclerView-Adapter
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

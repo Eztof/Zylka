@@ -16,8 +16,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Pflanzen: TP357-Bluetooth-Sensoren auslesen (nur aktiver Scan bei Nutzeraktion,
-         keine Dauerverbindung). -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+         keine Dauerverbindung). neverForLocation: wir leiten aus den Scan-Ergebnissen nie
+         den Standort ab, nur Name/MAC/Herstellerdaten - ohne dieses Flag verlangt Android
+         (ab API 31, hier minSdk 36 also immer) zusätzlich ACCESS_FINE_LOCATION UND
+         eingeschaltete Standortdienste, sonst liefert der Scan wortlos keine Ergebnisse. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -113,6 +118,10 @@
 
         <activity
             android:name=".plants.SensorDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".plants.SensorDiagnosticActivity"
             android:exported="false" />
 
         <receiver

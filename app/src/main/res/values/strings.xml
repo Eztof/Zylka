@@ -217,4 +217,12 @@
     <string name="sensor_reading_values">%1$.1f °C · %2$.0f %%</string>
     <string name="sensor_pull_failed">Kein Messwert empfangen</string>
     <string name="sensor_pull_success">Messwert aktualisiert</string>
+
+    <!-- Pflanzen: Bluetooth-Datenanalysator (Rohdaten-Diagnose) -->
+    <string name="sensor_diagnostic_title">Bluetooth-Diagnose</string>
+    <string name="sensor_diagnostic_caption">Alle BLE-Geräte in der Nähe mit rohen Werbedaten - zum Identifizieren eines Sensors.</string>
+    <string name="sensor_diagnostic_empty_hint">Noch kein Gerät gefunden. Ist Bluetooth am Sensor eingeschaltet und in der Nähe?</string>
+    <string name="sensor_diagnostic_rssi">%1$d dBm</string>
+    <string name="sensor_diagnostic_action_copy">Kopieren</string>
+    <string name="sensor_diagnostic_copied">In Zwischenablage kopiert</string>
 </resources>

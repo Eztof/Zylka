@@ -8,4 +8,9 @@
         android:title="@string/sensors_action_add"
         app:showAsAction="always" />
 
+    <item
+        android:id="@+id/action_ble_diagnostic"
+        android:title="@string/sensor_diagnostic_title"
+        app:showAsAction="never" />
+
 </menu>

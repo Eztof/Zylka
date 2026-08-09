@@ -76,6 +76,10 @@ class SensorsActivity : AppCompatActivity() {
             startActivity(Intent(this, SensorEditActivity::class.java))
             return true
         }
+        if (item.itemId == R.id.action_ble_diagnostic) {
+            startActivity(SensorDiagnosticActivity.intent(this))
+            return true
+        }
         return super.onOptionsItemSelected(item)
     }
 
