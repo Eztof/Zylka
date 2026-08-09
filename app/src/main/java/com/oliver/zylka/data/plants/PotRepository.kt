@@ -8,21 +8,19 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
- * Firestore-backed Töpfe (`pots/{potId}`) des eingeloggten Nutzers - kein lokaler/Offline-
- * Zustand, alles läuft über Snapshot-Listener bzw. (für den Prognose-Hintergrundabgleich in
- * [PlantForecastRepository]/`PlantAlarmScheduler`, wo kein Listener sauber wieder abgemeldet
- * werden könnte) einmalige Abfragen.
+ * Firestore-backed Töpfe (`pots/{potId}`) - geteilt zwischen allen eingeloggten Nutzern
+ * (gemeinsamer Garten), kein lokaler/Offline-Zustand. Alles läuft über Snapshot-Listener bzw.
+ * (für den Prognose-Hintergrundabgleich in [PlantForecastRepository]/`PlantAlarmScheduler`, wo
+ * kein Listener sauber wieder abgemeldet werden könnte) einmalige Abfragen.
  */
 class PotRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
     private val collection get() = db.collection("pots")
 
-    fun observePots(uid: String): Flow<List<Pot>> = callbackFlow {
-        val registration = collection
-            .whereEqualTo(FIELD_UID, uid)
-            .addSnapshotListener { snapshot, _ ->
-                trySend(snapshot?.documents.orEmpty().mapNotNull { it.toPotOrNull() })
-            }
+    fun observePots(): Flow<List<Pot>> = callbackFlow {
+        val registration = collection.addSnapshotListener { snapshot, _ ->
+            trySend(snapshot?.documents.orEmpty().mapNotNull { it.toPotOrNull() })
+        }
         awaitClose { registration.remove() }
     }
 
@@ -33,8 +31,8 @@ class PotRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIns
         awaitClose { registration.remove() }
     }
 
-    suspend fun loadPots(uid: String): List<Pot> =
-        collection.whereEqualTo(FIELD_UID, uid).get().await().documents.mapNotNull { it.toPotOrNull() }
+    suspend fun loadPots(): List<Pot> =
+        collection.get().await().documents.mapNotNull { it.toPotOrNull() }
 
     /** Einmaliges Laden eines einzelnen Topfs, z. B. zum Öffnen des Bearbeiten-Formulars. */
     suspend fun getPot(potId: String): Pot? = collection.document(potId).get().await().toPotOrNull()

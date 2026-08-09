@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.oliver.zylka.R
+import com.oliver.zylka.data.plants.Plant
 import com.oliver.zylka.data.plants.PotForecast
 import com.oliver.zylka.databinding.ItemPotSummaryBinding
 import java.time.Instant
@@ -49,7 +50,7 @@ class PotSummaryAdapter(
             binding.textPlantNames.text = if (forecast.plants.isEmpty()) {
                 context.getString(R.string.plants_no_plants_assigned)
             } else {
-                forecast.plants.joinToString(", ") { it.name }
+                forecast.plants.joinToString(", ") { plantLabel(it) }
             }
             binding.progressVorrat.progress = forecast.percentFull
             binding.textStatus.text = statusText(context, forecast)
@@ -83,6 +84,9 @@ class PotSummaryAdapter(
                 }
             }
         }
+
+        private fun plantLabel(plant: Plant): String =
+            if (plant.anzahl > 1) "${plant.anzahl}× ${plant.name}" else plant.name
 
         private fun daysUntil(epochMillis: Long): Long {
             val dueDate = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate()

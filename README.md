@@ -243,13 +243,14 @@ selbst nach.
   Schwellenwert in %, Standard 50) direkt auf dem Screen: keine feste
   Uhrzeit, die Benachrichtigung feuert genau dann, wenn die Prognose eines
   Topfs den eingestellten Wert unterschreitet.
-- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser (mit
-  sofort berechneter Volumen-/Kapazitäts-Vorschau), Standort, optionale
-  Position (sonst wird bei jeder Prognose der Gerätestandort verwendet),
-  zugeordnete Pflanzen.
-- **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Art
-  (wissenschaftlich, optional - wird nur gespeichert, nicht ausgewertet,
-  keine Artendatenbank-Anbindung), Kategorie, Größenfaktor.
+- **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser ODER
+  direkt das Volumen in Litern (beide Felder rechnen sich ineinander um,
+  mit sofort berechneter Kapazitäts-Vorschau), Standort, optionale Position
+  (sonst wird bei jeder Prognose der Gerätestandort verwendet), zugeordnete
+  Pflanzen.
+- **Pflanze anlegen/bearbeiten** (`PlantEditActivity`): Name, Kategorie,
+  Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag statt
+  einzeln anzulegen).
 - **Topf-Verlauf** (`PotDetailActivity`): alle Gieß-Vorgänge sowie die
   simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
   Vorbild `KennzeichenMapView`).
@@ -263,7 +264,7 @@ berechnet:
 
 ```
 pots/{potId}
-  uid, name, durchmesserCm, volumenLiter (berechnet),
+  uid (wer angelegt hat), name, durchmesserCm, volumenLiter (berechnet),
   standort: "innen" | "unterDach" | "frei",
   kapazitaetMm (kalibriert, Startwert berechnet),
   kapazitaetStartwertMm (eingefrorener Startwert, begrenzt die Kalibrierung),
@@ -271,21 +272,24 @@ pots/{potId}
   latitude, longitude (optional, sonst Gerätestandort)
 
 plants/{plantId}
-  uid, potId, name, species (wissenschaftlich, optional),
+  uid (wer angelegt hat), potId, name,
   kategorie: SUKKULENTE | MEDITERRAN | STANDARD | DURSTIG | GEMUESE,
-  kcBasis, groessenfaktor (Default 1.0)
+  kcBasis, groessenfaktor (Default 1.0), anzahl (Default 1 - mehrere
+  gleiche Pflanzen als ein Eintrag statt einzeln anzulegen)
 
 waterings/{autoId}          // append-only Log, wie discoveries
-  uid, potId, wateredAt (Server-Timestamp),
+  uid (wer gegossen hat), potId, wateredAt (Server-Timestamp),
   feedback: "UEBERFAELLIG" | "PASSEND" | "NOCH_FEUCHT" | null
 
 weather_cache/{uid}         // ein Dokument je Nutzer, ein Eintrag je Standort
   locations: { "<lat,lon gerundet>": { fetchedAt, latitude, longitude, hourly } }
 ```
 
-Anders als beim Kennzeichen-Sammelspiel sind `pots`, `plants` und
-`waterings` rein privat (kein gemeinsamer Log) - siehe Firestore-Regeln
-unten.
+`pots`, `plants` und `waterings` sind zwischen allen eingeloggten Nutzern
+geteilt (gemeinsamer Garten, z. B. für dich und deine Partnerin) - jeder
+sieht und bearbeitet alle Töpfe und Pflanzen, unabhängig davon, wer sie
+angelegt hat; das `uid`-Feld ist reine Herkunfts-Information. Nur der
+Wetter-Cache bleibt strikt pro Konto (siehe Firestore-Regeln unten).
 
 ### Rechenweg (`PlantWaterCalculator`, ohne Android-Abhängigkeiten)
 
@@ -309,7 +313,13 @@ Kapazität, per Schieberegler 20-80 % einstellbar).
 **Startwert der Kapazität.** Topfvolumen als Kegelstumpf (obere Öffnung =
 Durchmesser, untere Öffnung ≈ 70 % davon, Höhe ≈ 0.85 × Durchmesser), davon
 28 % pflanzenverfügbares Wasser, umgerechnet auf mm über die
-Topf-Grundfläche.
+Topf-Grundfläche. Diese Umrechnung braucht die Grundfläche (nicht nur das
+Volumen), weil sich die Verdunstung auf die Erdoberfläche bezieht - ein
+flacher, breiter Topf trocknet bei gleichem Volumen schneller aus als ein
+schmaler, tiefer. `PotEditActivity` bietet deshalb wahlweise Durchmesser
+oder Volumen als Eingabe an; `durchmesserFuerVolumen()` rechnet ein
+eingegebenes Volumen mit derselben Kegelstumpf-Annahme in einen
+gleichwertigen Durchmesser um.
 
 **Prognose.** Das Modell läuft mit der Wetterreihe (Vergangenheit + Prognose)
 stündlich vorwärts, bis der Vorrat die Gießschwelle unterschreitet - das
@@ -359,8 +369,8 @@ Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
   Töpfe irreführend.
 - Kein Bluetooth-/TP357-Sensor in diesem Schritt - `WeatherRepository` ist
   aber so gehalten, dass sich eine lokale Mikroklima-Messquelle später
-  danebenstellen ließe. Keine Artendatenbank-Anbindung: `species` wird nur
-  gespeichert, die Kategorie bleibt vorerst eine manuelle Auswahl.
+  danebenstellen ließe. Keine Artendatenbank-Anbindung: die Kategorie
+  bleibt vorerst eine manuelle Auswahl.
 
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
@@ -432,22 +442,21 @@ match /notenspiegel_settings/{uid} {
 }
 ```
 
-Für den Gießplaner (Töpfe und Pflanzen rein privat je Konto; der Gieß-Log
-ist wie `discoveries` nur anhängbar, aber - anders als dort - ebenfalls nur
-vom eigenen Konto lesbar; der Wetter-Cache ist reine Zwischenablage je
-Konto):
+Für den Gießplaner (Töpfe und Pflanzen für alle eingeloggten Nutzer
+gemeinsam les- und schreibbar - geteilter Garten; der Gieß-Log ist wie
+`discoveries` nur anhängbar und für alle lesbar, angelegt werden dürfen
+aber nur Einträge mit dem eigenen Konto als `uid`; der Wetter-Cache bleibt
+reine Zwischenablage je Konto):
 
 ```
 match /pots/{potId} {
-  allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
-  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow read, write: if request.auth != null;
 }
 match /plants/{plantId} {
-  allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
-  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow read, write: if request.auth != null;
 }
 match /waterings/{wateringId} {
-  allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+  allow read: if request.auth != null;
   allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
   allow update, delete: if false;
 }

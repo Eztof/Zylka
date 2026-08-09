@@ -19,8 +19,10 @@ data class PotForecast(
 )
 
 /**
- * Bündelt Pots + Plants + letzte Gießvorgänge + Wetterreihe zu fertigen Prognosen. Wird
- * sowohl von `PlantsHomeActivity` (Anzeige, Sortierung nach Dringlichkeit) als auch von
+ * Bündelt Pots + Plants + letzte Gießvorgänge + Wetterreihe zu fertigen Prognosen. Töpfe und
+ * Pflanzen sind zwischen allen eingeloggten Nutzern geteilt (gemeinsamer Garten) - geladen
+ * wird hier für alle, unabhängig davon, wer sie angelegt hat. Wird sowohl von
+ * `PlantsHomeActivity` (Anzeige, Sortierung nach Dringlichkeit) als auch von
  * `PlantAlarmScheduler` (nächsten Alarm bestimmen) genutzt, damit diese Kombinationslogik
  * nicht doppelt existiert - vergleichbar mit der Rolle, die `WasteCalendarRepository` für
  * sowohl `WasteCalendarActivity` als auch `WasteAlarmScheduler` spielt.
@@ -39,19 +41,25 @@ class PlantForecastRepository(
 
     private val locationHelper = LocationHelper(context)
 
+    /**
+     * [currentUid] ist ausschließlich für den Wetter-Cache relevant (`weather_cache/{uid}`
+     * gehört dem aktuell angemeldeten Nutzer - die Firestore-Regeln erlauben nur diesem
+     * selbst Lese-/Schreibzugriff) - für die Auswahl der Töpfe/Pflanzen spielt er keine Rolle
+     * mehr, die sind geteilt.
+     */
     suspend fun computeForecasts(
-        uid: String,
+        currentUid: String,
         schwelleAnteil: Double = PlantWaterCalculator.GIESSSCHWELLE_ANTEIL,
     ): List<PotForecast> {
-        val pots = potRepository.loadPots(uid)
+        val pots = potRepository.loadPots()
         if (pots.isEmpty()) return emptyList()
 
-        val plantsByPot = plantRepository.loadPlants(uid).groupBy { it.potId }
+        val plantsByPot = plantRepository.loadPlants().groupBy { it.potId }
         val deviceLocation = runCatching { locationHelper.currentLocationOrNull() }.getOrNull()
         val now = System.currentTimeMillis()
 
         val forecasts = pots.map { pot ->
-            forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now, schwelleAnteil)
+            forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now, schwelleAnteil, currentUid)
         }
         return forecasts.sortedWith(
             compareBy(
@@ -67,6 +75,7 @@ class PlantForecastRepository(
         deviceLocation: Pair<Double, Double>?,
         nowEpochMillis: Long,
         schwelleAnteil: Double,
+        currentUid: String,
     ): PotForecast {
         val latitude = pot.latitude ?: deviceLocation?.first
         val longitude = pot.longitude ?: deviceLocation?.second
@@ -74,7 +83,7 @@ class PlantForecastRepository(
             return unresolvedForecast(pot, plants, isStale = false, hasLocation = false)
         }
 
-        val weather = runCatching { weatherRepository.hourlySeries(pot.uid, latitude, longitude) }.getOrNull()
+        val weather = runCatching { weatherRepository.hourlySeries(currentUid, latitude, longitude) }.getOrNull()
         if (weather == null || weather.hourly.isEmpty()) {
             return unresolvedForecast(pot, plants, isStale = true, hasLocation = true)
         }
