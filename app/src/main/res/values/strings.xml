@@ -212,6 +212,7 @@
     <string name="sensor_edit_delete_confirm">Sensor löschen?</string>
     <string name="sensor_bluetooth_disabled">Bluetooth ist ausgeschaltet</string>
     <string name="sensor_detail_action_pull">Jetzt abrufen</string>
+    <string name="sensor_detail_action_diagnose">Rohdaten-Diagnose</string>
     <string name="sensor_detail_action_load_history">Verlauf laden</string>
     <string name="sensor_detail_load_history_caption">Lädt die im Sensor gespeicherte Historie. Zeitpunkte sind geschätzt (Aufnahme-Abstand unbekannt) - mehrfaches Laden kann Werte doppelt anlegen.</string>
     <string name="sensor_detail_label_history">Verlauf</string>

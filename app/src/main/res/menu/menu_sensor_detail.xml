@@ -7,4 +7,9 @@
         android:title="@string/action_edit"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_diagnose_sensor"
+        android:title="@string/sensor_detail_action_diagnose"
+        app:showAsAction="never" />
+
 </menu>

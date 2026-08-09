@@ -407,24 +407,27 @@ anderen Firmware können die Offsets abweichen - dann reicht es, die
 jeweilige `parse*`-Funktion anzupassen.
 
 Zum Identifizieren eines Sensors und Ableiten seines tatsächlichen
-Byte-Formats gibt es unter „Sensoren" → „Bluetooth-Diagnose"
-(`SensorDiagnosticActivity`) einen Rohdaten-Modus mit drei Quellen:
-- **Scan** (Standard): protokolliert jedes empfangene Advertisement in der
-  Nähe (nicht nur den letzten Wert je Gerät) mit Zeitstempel, Name/MAC,
-  Signalstärke und vollem Hex-Dump.
-- **GATT** (Menü „Per GATT verbinden", ein Gerät aus den zuletzt gesehenen
-  auswählen): verbindet sich damit und protokolliert **jede** Notification
-  und jede Read-Antwort **jeder** Characteristic als Hex-Dump - auch wenn
-  `parseGattNotification` sie nicht erkennt.
-- **Verlaufsanfrage testen (roh)** (Menü, ebenfalls Gerät auswählen): wie
-  GATT, schickt aber zusätzlich genau die Kommandosequenz aus
-  `SensorBleScanner.readHistory` und protokolliert **jede** Antwort roh -
-  auch wenn sie nicht ins dort erwartete Rahmenformat passt. Zum Debuggen,
-  falls „Verlauf laden" in `SensorDetailActivity` nichts liefert: zeigt, ob
-  überhaupt eine Antwort ankommt (falsche Characteristic/Checksumme/
-  Schreibtyp) oder ob „nur" das Antwortformat von der Erwartung abweicht.
+Byte-Formats gibt es einen Rohdaten-Modus (`SensorDiagnosticActivity`) mit
+zwei Einstiegen:
+- **Fokussiert**, über „Sensoren" → ein Sensor → ⋮ → „Rohdaten-Diagnose":
+  verbindet sich sofort per GATT mit genau diesem Sensor und schickt die
+  Historien-Anfrage - kein Scannen, kein Geräte-Auswählen, und es tauchen
+  **keine fremden BLE-Geräte** in der Nähe (Kopfhörer, andere Sensoren o. Ä.)
+  in Liste oder Export auf, da gar nicht erst passiv gescannt wird. Das ist
+  der empfohlene Weg zum Debuggen eines bereits angelegten Sensors.
+- **Allgemein**, über „Sensoren" → „Bluetooth-Diagnose": startet im
+  passiven Advertisement-Scan-Modus, dabei aber automatisch auf bereits
+  angelegte Sensoren gefiltert (gilt auch für die Geräte-Auswahl bei „Per
+  GATT verbinden"/„Verlaufsanfrage testen (roh)" im Menü) - fremde Geräte
+  landen so ebenfalls nicht in der Liste. Sinnvoll, um überhaupt erstmal ein
+  Advertisement zu sehen, oder für Geräte, die noch nicht als Sensor
+  angelegt sind.
 
-In allen drei Modi grenzt ein Textfilter das Log auf ein einzelnes Gerät ein,
+In beiden Fällen protokolliert der GATT-/Verlaufs-Modus **jede**
+Notification und jede Read-Antwort **jeder** Characteristic als Hex-Dump -
+auch wenn `parseGattNotification` sie nicht erkennt; „Verlaufsanfrage
+testen (roh)" schickt zusätzlich genau die Kommandosequenz aus
+`SensorBleScanner.readHistory`. Ein Textfilter grenzt weiter ein,
 „Exportieren" teilt das (gefilterte) Log komplett per Standard-Share-Sheet
 als Text (z. B. per Messenger oder Mail), „Kopieren" legt einen einzelnen
 Eintrag in die Zwischenablage.
