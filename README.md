@@ -254,11 +254,13 @@ selbst nach.
 - **Topf-Verlauf** (`PotDetailActivity`): alle Gieß-Vorgänge sowie die
   simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
   Vorbild `KennzeichenMapView`).
-- **Temperatursensoren** (`SensorsActivity`, verlinkt von der Startseite):
-  Liste aller angelegten TP357-Sensoren mit letztem Messwert, durchsuchbar.
-  `SensorEditActivity` legt Sensoren an/benennt sie um (per Hand oder über
-  eine Bluetooth-Umgebungssuche), `SensorDetailActivity` zeigt den aktuellen
-  Messwert, pullt per Knopfdruck eine neue Messung und listet die Chronik.
+- **Temperatursensoren** (`SensorsActivity`, eigene Kachel auf der
+  App-Startseite `MainActivity` sowie als Vorschau-Kachel in
+  `PlantsHomeActivity`): Liste aller angelegten TP357-Sensoren mit letztem
+  Messwert, durchsuchbar. `SensorEditActivity` legt Sensoren an/benennt sie
+  um (per Hand oder über eine Bluetooth-Umgebungssuche),
+  `SensorDetailActivity` zeigt den aktuellen Messwert, pullt per Knopfdruck
+  eine neue Messung und listet die Chronik.
 
 ### Datenmodell (Firestore, live synchronisiert)
 
@@ -395,9 +397,13 @@ Werte). Vor produktivem Einsatz einmal gegen die ThermoPro-App
 gegenprüfen; weicht das Format ab, muss nur `parseTp357` angepasst werden.
 Zum Identifizieren eines Sensors und Ableiten seines tatsächlichen
 Byte-Formats gibt es unter „Sensoren" → „Bluetooth-Diagnose"
-(`SensorDiagnosticActivity`) einen Rohdaten-Modus: listet alle BLE-Geräte
-in der Nähe live mit Name/MAC/Signalstärke und dem vollen Hex-Dump ihrer
-Werbedaten, unabhängig davon, ob `parseTp357` sie erkennt.
+(`SensorDiagnosticActivity`) einen Rohdaten-Modus: protokolliert **jedes**
+empfangene Werbepaket in der Nähe (nicht nur den letzten Wert je Gerät) mit
+Zeitstempel, Name/MAC, Signalstärke und dem vollen Hex-Dump, unabhängig
+davon, ob `parseTp357` es erkennt - ein Textfilter grenzt das Log auf ein
+einzelnes Gerät ein, „Exportieren" teilt das (gefilterte) Log per
+Standard-Share-Sheet als Text (z. B. per Messenger oder Mail), „Kopieren"
+legt einen einzelnen Eintrag in die Zwischenablage.
 
 **Kein Gerät gefunden?** `BLUETOOTH_SCAN` ist im Manifest mit
 `android:usesPermissionFlags="neverForLocation"` deklariert - ohne dieses
@@ -677,7 +683,7 @@ app/src/main/java/com/oliver/zylka/
 │   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
 │   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
 │   ├── SensorDetailActivity.kt      # Aktueller Messwert + Verlauf, Button "Jetzt abrufen"
-│   ├── SensorDiagnosticActivity.kt  # Rohdaten-Diagnose: alle BLE-Geräte live mit Hex-Dump
+│   ├── SensorDiagnosticActivity.kt  # Rohdaten-Log aller BLE-Pakete, Filter, Export
 │   └── SensorAdapter.kt / SensorReadingAdapter.kt / BleDiagnosticAdapter.kt  # RecyclerView-Adapter
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an

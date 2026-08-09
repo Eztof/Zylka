@@ -35,6 +35,7 @@ data class RawScanResult(
     val rssi: Int,
     val rawBytesHex: String,
     val manufacturerData: List<String>,
+    val epochMillis: Long,
 )
 
 /**
@@ -153,6 +154,7 @@ class SensorBleScanner(private val context: Context) {
             rssi = rssi,
             rawBytesHex = record?.bytes?.toHexString().orEmpty(),
             manufacturerData = manufacturerData,
+            epochMillis = System.currentTimeMillis(),
         )
     }
 
