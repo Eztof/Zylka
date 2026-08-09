@@ -422,6 +422,28 @@ In beiden Modi grenzt ein Textfilter das Log auf ein einzelnes Gerät ein,
 als Text (z. B. per Messenger oder Mail), „Kopieren" legt einen einzelnen
 Eintrag in die Zwischenablage.
 
+**Gespeicherte Historie laden** (`SensorDetailActivity`, Button „Verlauf
+laden"): das TP357S loggt Messwerte auch ohne Verbindung intern mit und
+lässt sich die Historie per GATT abfragen - das genutzte Protokoll stammt
+von [github.com/giovannipizzi/pytp357s](https://github.com/giovannipizzi/pytp357s)
+(`PROTOCOL.md`, dort für exakt diesen Gerätetyp reverse-engineered: Service
+`...1910`, Notify-Characteristic `...2b10`, Write-Characteristic `...2b11`).
+`SensorBleScanner.readHistory` meldet dem Sensor die aktuelle Uhrzeit,
+schickt die vom Protokoll vorgesehene Kommandosequenz (Session-Init,
+Offset, Datenanfrage) und setzt die über mehrere Notifications gestückelte
+Antwort wieder zu einer Liste von Temperatur-/Feuchte-Tripeln zusammen.
+⚠️ **Zwei Einschränkungen, bewusst in Kauf genommen:**
+- Das Protokoll liefert **keinen Zeitstempel pro Datensatz**, nur die
+  Reihenfolge (neuester zuerst). `SensorDetailActivity` rekonstruiert
+  Zeitpunkte als `jetzt − Index × Aufnahme-Intervall`, mit einem
+  angenommenen Intervall von 1 Minute (`SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES`,
+  aus dem Referenzprojekt übernommen, am eigenen Gerät nicht geprüft) - ist
+  das tatsächliche Log-Intervall am Sensor anders eingestellt, verschieben
+  sich die Zeitstempel entsprechend, die Werte selbst bleiben aber korrekt.
+- Mehrfaches Drücken von „Verlauf laden" legt dieselben Messwerte mit
+  jeweils neu berechneten (leicht verschobenen) Zeitstempeln erneut an -
+  es gibt keine Duplikaterkennung.
+
 **Kein Gerät gefunden?** `BLUETOOTH_SCAN` ist im Manifest mit
 `android:usesPermissionFlags="neverForLocation"` deklariert - ohne dieses
 Flag verlangt Android ab API 31 zusätzlich `ACCESS_FINE_LOCATION` und

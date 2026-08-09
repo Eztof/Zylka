@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.AuthRepository
+import com.oliver.zylka.data.plants.HistoricalPoint
 import com.oliver.zylka.data.plants.Sensor
 import com.oliver.zylka.data.plants.SensorBleScanner
 import com.oliver.zylka.data.plants.SensorReadingRepository
@@ -24,10 +25,12 @@ import com.oliver.zylka.databinding.ActivitySensorDetailBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
-/** Aktueller Messwert + Verlauf eines Sensors, Button "Jetzt abrufen" pullt per Bluetooth
- * eine neue Messung (siehe [SensorBleScanner]). */
+/** Aktueller Messwert + Verlauf eines Sensors. "Jetzt abrufen" pullt per Bluetooth eine neue
+ * Momentaufnahme, "Verlauf laden" importiert die im Gerät gespeicherte Historie auf einmal
+ * (siehe [SensorBleScanner]). */
 class SensorDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySensorDetailBinding
@@ -40,10 +43,15 @@ class SensorDetailActivity : AppCompatActivity() {
 
     private lateinit var sensorId: String
     private var currentSensor = Sensor()
+    private var pendingBleAction: (() -> Unit)? = null
 
     private val requestBlePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results -> if (results.values.all { it }) pullReading() }
+    ) { results ->
+        val action = pendingBleAction
+        pendingBleAction = null
+        if (results.values.all { it }) action?.invoke()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +64,8 @@ class SensorDetailActivity : AppCompatActivity() {
         sensorId = intent.getStringExtra(EXTRA_SENSOR_ID) ?: run { finish(); return }
         binding.recyclerHistory.layoutManager = LinearLayoutManager(this)
         binding.recyclerHistory.adapter = historyAdapter
-        binding.buttonPull.setOnClickListener { onPullClicked() }
+        binding.buttonPull.setOnClickListener { ensureBlePermissions { pullReading() } }
+        binding.buttonLoadHistory.setOnClickListener { ensureBlePermissions { pullHistory() } }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -109,10 +118,11 @@ class SensorDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun onPullClicked() {
+    private fun ensureBlePermissions(action: () -> Unit) {
         if (bleScanner.hasPermissions()) {
-            pullReading()
+            action()
         } else {
+            pendingBleAction = action
             requestBlePermissions.launch(arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT))
         }
     }
@@ -137,6 +147,45 @@ class SensorDetailActivity : AppCompatActivity() {
             sensorReadingRepository.recordReading(uid, sensorId, reading.temperatureC, reading.humidityPercent)
             sensorRepository.updateLastReading(sensorId, reading.temperatureC, reading.humidityPercent)
             Toast.makeText(this@SensorDetailActivity, R.string.sensor_pull_success, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Lädt die gespeicherte Gerätehistorie und legt sie mit geschätzten Zeitstempeln an
+     * (`jetzt - Index × Aufnahme-Intervall`, neuester Datensatz zuerst - siehe
+     * [SensorBleScanner.readHistory]). Mehrfaches Drücken legt die Werte erneut an, da die
+     * geschätzten Zeitstempel keine Duplikatprüfung erlauben. */
+    private fun pullHistory() {
+        if (!bleScanner.isBluetoothEnabled()) {
+            Toast.makeText(this, R.string.sensor_bluetooth_disabled, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uid = authRepository.currentUser?.uid ?: return
+        val mac = currentSensor.macAddress
+        if (mac.isBlank()) return
+
+        binding.progressHistory.isVisible = true
+        lifecycleScope.launch {
+            val history = bleScanner.readHistory(mac)
+            binding.progressHistory.isVisible = false
+            if (history.isNullOrEmpty()) {
+                Toast.makeText(this@SensorDetailActivity, R.string.sensor_history_pull_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val intervalMillis = SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES * 60_000L
+            val now = System.currentTimeMillis()
+            val points = history.mapIndexed { index, reading ->
+                HistoricalPoint(
+                    measuredAt = Date(now - index * intervalMillis),
+                    temperatureC = reading.temperatureC,
+                    humidityPercent = reading.humidityPercent,
+                )
+            }
+            sensorReadingRepository.recordHistoricalReadings(uid, sensorId, points)
+            Toast.makeText(
+                this@SensorDetailActivity,
+                getString(R.string.sensor_history_pull_success, points.size),
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 

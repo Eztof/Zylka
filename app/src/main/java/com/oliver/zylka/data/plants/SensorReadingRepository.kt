@@ -7,6 +7,11 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.util.Date
+
+/** Ein Messwert mit selbst gesetztem (statt `serverTimestamp()`) Zeitpunkt, für den
+ * Massenimport aus [SensorBleScanner.readHistory] - siehe [SensorReadingRepository.recordHistoricalReadings]. */
+data class HistoricalPoint(val measuredAt: Date, val temperatureC: Double, val humidityPercent: Double)
 
 /**
  * Append-only Messwert-Log (`sensor_readings/{autoId}`) eines [Sensor]s, wie
@@ -42,6 +47,30 @@ class SensorReadingRepository(private val db: FirebaseFirestore = FirebaseFirest
             "humidityPercent" to humidityPercent,
         )
         collection.add(data).await()
+    }
+
+    /** Mehrere historische Messwerte (z. B. aus [SensorBleScanner.readHistory]) auf einmal
+     * anlegen - anders als [recordReading] mit einem selbst gesetzten Zeitpunkt statt
+     * `serverTimestamp()`, da diese Werte in der Vergangenheit liegen. In Batches zu höchstens
+     * 450 Einträgen geschrieben (Firestore-Limit pro Batch: 500). */
+    suspend fun recordHistoricalReadings(uid: String, sensorId: String, points: List<HistoricalPoint>) {
+        if (points.isEmpty()) return
+        points.chunked(450).forEach { chunk ->
+            val batch = db.batch()
+            chunk.forEach { point ->
+                batch.set(
+                    collection.document(),
+                    mapOf(
+                        "uid" to uid,
+                        FIELD_SENSOR_ID to sensorId,
+                        "measuredAt" to point.measuredAt,
+                        "temperatureC" to point.temperatureC,
+                        "humidityPercent" to point.humidityPercent,
+                    ),
+                )
+            }
+            batch.commit().await()
+        }
     }
 
     private fun DocumentSnapshot.toReadingOrNull(): SensorReading? {

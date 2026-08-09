@@ -17,12 +17,14 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Calendar
 import java.util.UUID
 import kotlin.coroutines.resume
 
@@ -32,6 +34,10 @@ data class DiscoveredDevice(val macAddress: String, val name: String?, val rssi:
 
 /** Eine über BLE ausgelesene Momentaufnahme von Temperatur/Feuchte. */
 data class BleReading(val temperatureC: Double, val humidityPercent: Double)
+
+/** Ein einzelner Datensatz aus der im Gerät gespeicherten Historie ([SensorBleScanner.readHistory])
+ * - ohne eigenen Zeitstempel, siehe dort. */
+data class HistoryReading(val temperatureC: Double, val humidityPercent: Double)
 
 /** Ein rohes BLE-Paket für die Diagnose (siehe [SensorBleScanner.scanRawFlow]/[SensorBleScanner.observeGattFlow]):
  * entweder ein Advertisement ([rssi] gesetzt) oder eine GATT-Notification/-Read-Antwort
@@ -138,6 +144,173 @@ class SensorBleScanner(private val context: Context) {
                 }
             }
         }
+    }
+
+    /**
+     * Lädt die im Gerät gespeicherte Messhistorie per GATT (reverse-engineertes Protokoll für
+     * die TP357S-Variante, siehe github.com/giovannipizzi/pytp357s/blob/main/PROTOCOL.md - dort
+     * dokumentiert an Service `...1910`/Write-Characteristic `...2b11`/Notify-Characteristic
+     * `...2b10`, die exakt zu diesem Gerät passen): meldet dem Sensor die aktuelle Uhrzeit,
+     * schickt die vom Protokoll vorgesehene Drei-Kommando-Sequenz (Session-Init, Offset,
+     * Datenanfrage mit [recordCount] als gewünschter Satzzahl) und sammelt die über mehrere
+     * Notifications gestückelte Antwort wieder zu einer zusammenhängenden Liste.
+     *
+     * **Wichtig:** Das Protokoll liefert pro Datensatz **keinen eigenen Zeitstempel** - nur die
+     * Reihenfolge (neuester zuerst) und den Aufnahme-Abstand, den [HISTORY_RECORD_INTERVAL_MINUTES]
+     * als Annahme festhält (im Referenzprojekt ~1 Minute, am TP357S selbst nicht geprüft). Falls
+     * am Gerät ein anderes Log-Intervall eingestellt ist, verschieben sich die daraus
+     * rekonstruierten Zeitstempel entsprechend - die Temperatur-/Feuchtewerte selbst bleiben
+     * davon unberührt. Liefert null bei Timeout/fehlenden Characteristics/Verbindungsabbruch.
+     */
+    @SuppressLint("MissingPermission")
+    suspend fun readHistory(macAddress: String, recordCount: Int = 500, timeoutMillis: Long = 25_000): List<HistoryReading>? {
+        if (!hasPermissions()) return null
+        val adapter = bluetoothAdapter?.takeIf { it.isEnabled } ?: return null
+        val device = adapter.getRemoteDevice(macAddress)
+
+        val servicesReady = CompletableDeferred<Boolean>()
+        val historyResult = CompletableDeferred<List<HistoryReading>?>()
+        var writeCharacteristic: BluetoothGattCharacteristic? = null
+        val payload = mutableListOf<Byte>()
+
+        val callback = object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    g.discoverServices()
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    servicesReady.complete(false)
+                    historyResult.complete(null)
+                }
+            }
+
+            override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+                if (status != BluetoothGatt.GATT_SUCCESS) {
+                    servicesReady.complete(false)
+                    return
+                }
+                val notifyChar = g.services.firstNotNullOfOrNull { it.getCharacteristic(NOTIFY_CHARACTERISTIC_UUID) }
+                val writeChar = g.services.firstNotNullOfOrNull { it.getCharacteristic(WRITE_CHARACTERISTIC_UUID) }
+                if (notifyChar == null || writeChar == null) {
+                    servicesReady.complete(false)
+                    return
+                }
+                writeCharacteristic = writeChar
+                g.setCharacteristicNotification(notifyChar, true)
+                val cccd = notifyChar.getDescriptor(CCCD_UUID)
+                if (cccd != null) g.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                servicesReady.complete(true)
+            }
+
+            override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                if (characteristic.uuid != NOTIFY_CHARACTERISTIC_UUID) return
+                appendHistoryChunk(payload, value)?.let { historyResult.complete(it) }
+            }
+        }
+
+        val gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE) ?: return null
+        return try {
+            withTimeoutOrNull(timeoutMillis) {
+                if (servicesReady.await() != true) return@withTimeoutOrNull null
+                val writeChar = writeCharacteristic ?: return@withTimeoutOrNull null
+                // Manche Vendor-Characteristics erlauben nur "ohne Antwort" schreiben - anhand
+                // der tatsächlichen Properties wählen statt es zu erzwingen (sonst schlägt der
+                // Schreibzugriff ggf. mit einem Fehlercode fehl, ohne dass wir das hier sehen).
+                val writeType = if (writeChar.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) {
+                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                } else {
+                    BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                }
+                val now = Calendar.getInstance()
+                // Kleine Pausen zwischen den Schreibbefehlen, wie im Referenzprotokoll
+                // beobachtet - das Gerät scheint pro Kommando etwas Verarbeitungszeit zu
+                // brauchen, statt jeden Schreibzugriff per GATT-Callback zu bestätigen.
+                delay(300)
+                gatt.writeCharacteristic(writeChar, buildDatetimeSyncCommand(now), writeType)
+                delay(200)
+                gatt.writeCharacteristic(writeChar, SESSION_INIT_COMMAND, writeType)
+                delay(200)
+                gatt.writeCharacteristic(writeChar, OFFSET_COMMAND, writeType)
+                delay(200)
+                gatt.writeCharacteristic(writeChar, buildHistoryRequestCommand(now, recordCount), writeType)
+                historyResult.await()
+            }
+        } finally {
+            runCatching { gatt.disconnect() }
+            runCatching { gatt.close() }
+        }
+    }
+
+    private fun checksum(bytes: ByteArray): Byte = (bytes.sumOf { it.toInt() and 0xFF } and 0xFF).toByte()
+
+    /** `a5 YY MM DD HH MM SS DOW CS` - setzt die Uhrzeit des Sensors auf [now] (Wochentag
+     * 1=Sonntag..7=Samstag, deckt sich mit [Calendar.DAY_OF_WEEK]). */
+    private fun buildDatetimeSyncCommand(now: Calendar): ByteArray {
+        val body = byteArrayOf(
+            0xA5.toByte(),
+            (now.get(Calendar.YEAR) - 2000).toByte(),
+            (now.get(Calendar.MONTH) + 1).toByte(),
+            now.get(Calendar.DAY_OF_MONTH).toByte(),
+            now.get(Calendar.HOUR_OF_DAY).toByte(),
+            now.get(Calendar.MINUTE).toByte(),
+            now.get(Calendar.SECOND).toByte(),
+            now.get(Calendar.DAY_OF_WEEK).toByte(),
+        )
+        return body + checksum(body)
+    }
+
+    /** `cc cc 01 09 00 00 00 YY MM DD HH MM SS NL NH CS 66 66` - fordert bis zu [recordCount]
+     * Datensätze an (NL/NH = Anzahl, 16 Bit Little-Endian). */
+    private fun buildHistoryRequestCommand(now: Calendar, recordCount: Int): ByteArray {
+        val body = byteArrayOf(
+            0x01, 0x09, 0x00, 0x00, 0x00,
+            (now.get(Calendar.YEAR) - 2000).toByte(),
+            (now.get(Calendar.MONTH) + 1).toByte(),
+            now.get(Calendar.DAY_OF_MONTH).toByte(),
+            now.get(Calendar.HOUR_OF_DAY).toByte(),
+            now.get(Calendar.MINUTE).toByte(),
+            now.get(Calendar.SECOND).toByte(),
+            (recordCount and 0xFF).toByte(),
+            ((recordCount shr 8) and 0xFF).toByte(),
+        )
+        return byteArrayOf(0xCC.toByte(), 0xCC.toByte()) + body + checksum(body) + byteArrayOf(0x66, 0x66)
+    }
+
+    /**
+     * Sammelt die (potenziell über mehrere Notifications gestückelte) Antwort auf die
+     * Historien-Anfrage im Rahmen `cc cc 01 [N2 N1 N0] 00 [Temp₁₆ Temp₈ Feuchte]… [CS] 66 66`.
+     * Gibt die Datensätze zurück, sobald der laut [N2 N1 N0] erwartete Umfang vollständig
+     * angekommen ist, sonst null (mehr Daten abwarten). Beginnt [buffer] nicht mit dem
+     * erwarteten Rahmen, wird er verworfen (z. B. eine dazwischenfunkende Live-Notification auf
+     * derselben Characteristic, siehe [parseGattNotification]).
+     */
+    private fun appendHistoryChunk(buffer: MutableList<Byte>, chunk: ByteArray): List<HistoryReading>? {
+        buffer.addAll(chunk.toList())
+        if (buffer.size < 7) return null
+        if (buffer[0] != 0xCC.toByte() || buffer[1] != 0xCC.toByte() || buffer[2] != 0x01.toByte() || buffer[6] != 0x00.toByte()) {
+            buffer.clear()
+            return null
+        }
+        val payloadCount = (buffer[3].toInt() and 0xFF) or
+            ((buffer[4].toInt() and 0xFF) shl 8) or
+            ((buffer[5].toInt() and 0xFF) shl 16)
+        if (payloadCount <= 0) {
+            buffer.clear()
+            return null
+        }
+        val totalExpected = 7 + payloadCount + 2
+        if (buffer.size < totalExpected) return null
+
+        val records = buffer.subList(7, 7 + payloadCount - 1)
+        val readings = mutableListOf<HistoryReading>()
+        var i = 0
+        while (i + 2 < records.size) {
+            val tempRawUnsigned = ((records[i + 1].toInt() and 0xFF) shl 8) or (records[i].toInt() and 0xFF)
+            val tempRaw = if (tempRawUnsigned > 32767) tempRawUnsigned - 65536 else tempRawUnsigned
+            val humidity = (records[i + 2].toInt() and 0xFF).toDouble()
+            readings.add(HistoryReading(tempRaw / 10.0, humidity))
+            i += 3
+        }
+        return readings
     }
 
     /** Rohdaten-Variante von [readSensorGatt] für die Diagnose (`SensorDiagnosticActivity`):
@@ -376,9 +549,28 @@ class SensorBleScanner(private val context: Context) {
         return BleReading(temperature, humidity)
     }
 
-    private companion object {
+    companion object {
         /** Client Characteristic Configuration Descriptor - Standard-UUID zum Abonnieren von
          * Notify/Indicate auf einer beliebigen Characteristic. */
-        val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        private val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+
+        /** TP357S-Vendor-Service samt Notify-/Write-Characteristic für Live-Wert und Historie,
+         * siehe github.com/giovannipizzi/pytp357s/blob/main/PROTOCOL.md. */
+        private val NOTIFY_CHARACTERISTIC_UUID: UUID = UUID.fromString("00010203-0405-0607-0809-0a0b0c0d2b10")
+        private val WRITE_CHARACTERISTIC_UUID: UUID = UUID.fromString("00010203-0405-0607-0809-0a0b0c0d2b11")
+
+        /** `cc cc 02 01 00 00 01 04 66 66` - fester Session-Init-Befehl aus dem Referenzprotokoll,
+         * ohne variable Felder. */
+        private val SESSION_INIT_COMMAND =
+            byteArrayOf(0xCC.toByte(), 0xCC.toByte(), 0x02, 0x01, 0x00, 0x00, 0x01, 0x04, 0x66, 0x66)
+
+        /** `cc cc 04 00 00 00 00 04 66 66` - fester Offset-Befehl (laut Referenzprotokoll wird die
+         * Antwort darauf ignoriert, er scheint aber Teil der Handshake-Sequenz zu sein). */
+        private val OFFSET_COMMAND =
+            byteArrayOf(0xCC.toByte(), 0xCC.toByte(), 0x04, 0x00, 0x00, 0x00, 0x00, 0x04, 0x66, 0x66)
+
+        /** Angenommener Aufnahme-Abstand der Gerätehistorie in Minuten (siehe [readHistory]) -
+         * unbestätigte Annahme aus dem Referenzprotokoll, am TP357S selbst nicht geprüft. */
+        const val HISTORY_RECORD_INTERVAL_MINUTES = 1L
     }
 }

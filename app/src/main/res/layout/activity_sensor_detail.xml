@@ -65,6 +65,39 @@
                 tools:visibility="visible" />
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_load_history"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sensor_detail_action_load_history"
+                app:cornerRadius="16dp" />
+
+            <ProgressBar
+                android:id="@+id/progress_history"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="14dp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/sensor_detail_load_history_caption"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="@color/brand_outline" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

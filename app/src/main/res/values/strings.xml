@@ -212,11 +212,15 @@
     <string name="sensor_edit_delete_confirm">Sensor löschen?</string>
     <string name="sensor_bluetooth_disabled">Bluetooth ist ausgeschaltet</string>
     <string name="sensor_detail_action_pull">Jetzt abrufen</string>
+    <string name="sensor_detail_action_load_history">Verlauf laden</string>
+    <string name="sensor_detail_load_history_caption">Lädt die im Sensor gespeicherte Historie. Zeitpunkte sind geschätzt (Aufnahme-Abstand unbekannt) - mehrfaches Laden kann Werte doppelt anlegen.</string>
     <string name="sensor_detail_label_history">Verlauf</string>
     <string name="sensor_detail_history_empty">Noch keine Messwerte.</string>
     <string name="sensor_reading_values">%1$.1f °C · %2$.0f %%</string>
     <string name="sensor_pull_failed">Kein Messwert empfangen</string>
     <string name="sensor_pull_success">Messwert aktualisiert</string>
+    <string name="sensor_history_pull_failed">Keine Historie empfangen</string>
+    <string name="sensor_history_pull_success">%1$d Messwerte aus der Historie importiert</string>
 
     <!-- Pflanzen: Bluetooth-Datenanalysator (Rohdaten-Diagnose) -->
     <string name="sensor_diagnostic_title">Bluetooth-Diagnose</string>
