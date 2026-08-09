@@ -13,6 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.plants.PlantForecastRepository
+import com.oliver.zylka.data.plants.PlantPrefs
 import com.oliver.zylka.data.plants.Pot
 import com.oliver.zylka.data.plants.PotRepository
 import com.oliver.zylka.data.plants.WateringRepository
@@ -92,8 +93,9 @@ class PotDetailActivity : AppCompatActivity() {
 
     private fun loadChart() {
         lifecycleScope.launch {
+            val schwelleAnteil = PlantPrefs(applicationContext).schwellenwertProzent / 100.0
             val waterings = wateringRepository.loadWaterings(potId)
-            val forecasts = forecastRepository.computeForecasts(currentPot.uid)
+            val forecasts = forecastRepository.computeForecasts(currentPot.uid, schwelleAnteil)
             val forecast = forecasts.firstOrNull { it.pot.id == potId }
             binding.textNoWeatherHint.isVisible = forecast == null || !forecast.hasLocation
 
@@ -109,6 +111,7 @@ class PotDetailActivity : AppCompatActivity() {
             binding.chartWaterLevel.setData(
                 points = forecast?.verlauf.orEmpty(),
                 kapazitaetMm = currentPot.kapazitaetMm,
+                schwelleAnteil = schwelleAnteil,
                 nowEpochMillis = System.currentTimeMillis(),
                 wateringTimestamps = waterings.mapNotNull { it.wateredAt?.time },
             )

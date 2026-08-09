@@ -26,36 +26,50 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:paddingStart="16dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="10dp">
+            android:paddingTop="6dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="6dp">
 
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/plants_reminder_title"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="@color/brand_on_surface" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/text_reminder_time"
-                android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/plants_reminder_title"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="@color/brand_on_surface" />
+
+                <TextView
+                    android:id="@+id/text_threshold_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="@color/brand_primary"
+                    tools:text="50 %" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_reminder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider_threshold"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/brand_primary"
-                tools:text="18:00 Uhr" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switch_reminder"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:stepSize="5"
+                android:valueFrom="20"
+                android:valueTo="80"
+                app:trackColorActive="@color/brand_primary"
+                tools:value="50" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

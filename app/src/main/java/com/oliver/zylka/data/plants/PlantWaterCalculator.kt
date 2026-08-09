@@ -96,8 +96,12 @@ object PlantWaterCalculator {
 
     /** Erster Zeitpunkt in [verlauf], an dem der Vorrat unter die Gießschwelle fällt, oder
      * null, wenn die Reihe dafür nicht reicht. */
-    fun forecastDueAt(verlauf: List<Pair<Long, Double>>, kapazitaetMm: Double): Long? {
-        val schwelle = kapazitaetMm * GIESSSCHWELLE_ANTEIL
+    fun forecastDueAt(
+        verlauf: List<Pair<Long, Double>>,
+        kapazitaetMm: Double,
+        schwelleAnteil: Double = GIESSSCHWELLE_ANTEIL,
+    ): Long? {
+        val schwelle = kapazitaetMm * schwelleAnteil
         return verlauf.firstOrNull { it.second < schwelle }?.first
     }
 
@@ -121,6 +125,7 @@ object PlantWaterCalculator {
         regenfaktor: Double,
         kcTopf: Double,
         kapazitaetMm: Double,
+        schwelleAnteil: Double = GIESSSCHWELLE_ANTEIL,
     ): PotSimulation {
         if (hourly.isEmpty() || kapazitaetMm <= 0.0) {
             return PotSimulation(verlauf = emptyList(), vorratJetztMm = kapazitaetMm, faelligAbEpochMillis = null)
@@ -142,7 +147,7 @@ object PlantWaterCalculator {
 
         val vorratJetzt = verlauf.lastOrNull { it.first <= nowEpochMillis }?.second ?: startVorrat
         val future = verlauf.filter { it.first >= nowEpochMillis }
-        val faelligAb = forecastDueAt(future, kapazitaetMm)
+        val faelligAb = forecastDueAt(future, kapazitaetMm, schwelleAnteil)
 
         return PotSimulation(verlauf = verlauf, vorratJetztMm = vorratJetzt, faelligAbEpochMillis = faelligAb)
     }
@@ -160,8 +165,9 @@ object PlantWaterCalculator {
         kapazitaetStartwertMm: Double,
         verbrauchtBisGiessenMm: Double,
         feedback: WateringFeedback?,
+        schwelleAnteil: Double = GIESSSCHWELLE_ANTEIL,
     ): Double {
-        val schwelle = kapazitaetMm * GIESSSCHWELLE_ANTEIL
+        val schwelle = kapazitaetMm * schwelleAnteil
         var neu = if (schwelle > 0.0) {
             val verhaeltnis = verbrauchtBisGiessenMm / schwelle
             kapazitaetMm * (1 + KALIBRIERUNGS_FAKTOR * (verhaeltnis - 1))

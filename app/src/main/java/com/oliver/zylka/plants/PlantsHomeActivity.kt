@@ -2,7 +2,6 @@ package com.oliver.zylka.plants
 
 import android.Manifest
 import android.app.AlarmManager
-import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -33,8 +32,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Übersicht aller Töpfe, sortiert nach Dringlichkeit ([PlantForecastRepository]): Fortschritt,
- * "Gießen in X Tagen" bzw. "Jetzt gießen", Button "Gegossen". Erinnerung wie beim
- * Abfallkalender direkt auf diesem Screen (Switch + Uhrzeit), Vorbild `WasteCalendarActivity`.
+ * "Gießen in X Tagen" bzw. "Jetzt gießen", Button "Gegossen". Erinnerung direkt auf diesem
+ * Screen: an/aus + der Feuchte-Schwellenwert, unter dem benachrichtigt wird.
  */
 class PlantsHomeActivity : AppCompatActivity() {
 
@@ -73,12 +72,18 @@ class PlantsHomeActivity : AppCompatActivity() {
 
         binding.switchReminder.setOnCheckedChangeListener(null)
         binding.switchReminder.isChecked = prefs.reminderEnabled
-        updateReminderTimeLabel()
+        binding.sliderThreshold.value = prefs.schwellenwertProzent.toFloat()
+        updateThresholdLabel()
 
         binding.switchReminder.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) requestReminderEnable() else applyReminderEnabled(false)
         }
-        binding.textReminderTime.setOnClickListener { showTimePicker() }
+        binding.sliderThreshold.addOnChangeListener { _, value, fromUser ->
+            if (!fromUser) return@addOnChangeListener
+            prefs.schwellenwertProzent = value.toInt()
+            updateThresholdLabel()
+            rescheduleAlarm()
+        }
     }
 
     override fun onResume() {
@@ -109,7 +114,7 @@ class PlantsHomeActivity : AppCompatActivity() {
         binding.progressLoading.isVisible = true
         binding.textEmpty.isVisible = false
         lifecycleScope.launch {
-            val forecasts = forecastRepository.computeForecasts(uid)
+            val forecasts = forecastRepository.computeForecasts(uid, schwelleAnteil())
             binding.progressLoading.isVisible = false
             binding.textEmpty.isVisible = forecasts.isEmpty()
             adapter.submitList(forecasts)
@@ -137,6 +142,7 @@ class PlantsHomeActivity : AppCompatActivity() {
                 kapazitaetStartwertMm = forecast.pot.kapazitaetStartwertMm,
                 verbrauchtBisGiessenMm = verbrauchtBisGiessenMm,
                 feedback = feedback,
+                schwelleAnteil = schwelleAnteil(),
             )
             if (neueKapazitaet != forecast.pot.kapazitaetMm) {
                 potRepository.save(forecast.pot.copy(kapazitaetMm = neueKapazitaet))
@@ -158,7 +164,7 @@ class PlantsHomeActivity : AppCompatActivity() {
 
     private fun applyReminderEnabled(enabled: Boolean) {
         prefs.reminderEnabled = enabled
-        updateReminderTimeLabel()
+        updateThresholdLabel()
         rescheduleAlarm()
         if (enabled) maybeRequestExactAlarmAccess()
     }
@@ -172,25 +178,14 @@ class PlantsHomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun showTimePicker() {
-        TimePickerDialog(
-            this,
-            { _, hour, minute ->
-                prefs.setReminderTime(hour, minute)
-                updateReminderTimeLabel()
-                rescheduleAlarm()
-            },
-            prefs.reminderHour,
-            prefs.reminderMinute,
-            true,
-        ).show()
+    private fun updateThresholdLabel() {
+        val visible = prefs.reminderEnabled
+        binding.textThresholdValue.isVisible = visible
+        binding.sliderThreshold.isVisible = visible
+        binding.textThresholdValue.text = getString(R.string.plants_threshold_value, prefs.schwellenwertProzent)
     }
 
-    private fun updateReminderTimeLabel() {
-        binding.textReminderTime.isVisible = prefs.reminderEnabled
-        val time = "%02d:%02d".format(prefs.reminderHour, prefs.reminderMinute)
-        binding.textReminderTime.text = getString(R.string.plants_reminder_time, time)
-    }
+    private fun schwelleAnteil(): Double = prefs.schwellenwertProzent / 100.0
 
     private fun rescheduleAlarm() {
         lifecycleScope.launch { PlantAlarmScheduler.rescheduleNext(applicationContext) }

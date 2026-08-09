@@ -10,10 +10,14 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import com.oliver.zylka.R
 import com.oliver.zylka.data.plants.PlantWaterCalculator
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Zeichnet die simulierte Vorratskurve eines Topfs als gefüllte Linie - der Zeitraum ergibt
- * sich direkt aus der Open-Meteo-Abfrage (`past_days=7&forecast_days=7`, siehe
+ * Zeichnet die simulierte Vorratskurve eines Topfs als gefüllte Linie mit Achsenbeschriftung
+ * (0/Schwelle/100 % links, Start-/End-/Jetzt-Datum unten) - der Zeitraum ergibt sich direkt
+ * aus der Open-Meteo-Abfrage (`past_days=7&forecast_days=7`, siehe
  * [com.oliver.zylka.data.plants.WeatherRepository]): die linke Hälfte ist tatsächlicher
  * Verlauf, die rechte Hälfte (ab der "Jetzt"-Linie) die Prognose. Grundgerüst angelehnt an
  * `KennzeichenMapView`, hier aber bewusst ohne Pan/Zoom.
@@ -25,10 +29,12 @@ class PotWaterLevelChartView @JvmOverloads constructor(
 
     private var points: List<Pair<Long, Double>> = emptyList()
     private var kapazitaetMm: Double = 0.0
+    private var schwelleAnteil: Double = PlantWaterCalculator.GIESSSCHWELLE_ANTEIL
     private var nowEpochMillis: Long = 0L
     private var wateringTimestamps: List<Long> = emptyList()
 
     private val density = context.resources.displayMetrics.density
+    private val dateFormat = SimpleDateFormat("d.M.", Locale.GERMANY)
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -54,15 +60,24 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         style = Paint.Style.FILL
         color = ContextCompat.getColor(context, R.color.brand_secondary)
     }
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.brand_on_surface_variant)
+        textSize = 11f * density
+    }
+    private val thresholdLabelPaint = Paint(labelPaint).apply {
+        color = ContextCompat.getColor(context, R.color.brand_error)
+    }
 
     fun setData(
         points: List<Pair<Long, Double>>,
         kapazitaetMm: Double,
+        schwelleAnteil: Double,
         nowEpochMillis: Long,
         wateringTimestamps: List<Long>,
     ) {
         this.points = points
         this.kapazitaetMm = kapazitaetMm
+        this.schwelleAnteil = schwelleAnteil
         this.nowEpochMillis = nowEpochMillis
         this.wateringTimestamps = wateringTimestamps
         invalidate()
@@ -72,11 +87,11 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (points.size < 2 || kapazitaetMm <= 0.0) return
 
-        val paddingPx = 8f * density
-        val left = paddingPx
-        val right = width - paddingPx
-        val top = paddingPx
-        val bottom = height - paddingPx
+        val leftLabelWidth = labelPaint.measureText("100 %")
+        val left = leftLabelWidth + 6f * density
+        val right = width - 4f * density
+        val top = labelPaint.textSize / 2f
+        val bottom = height - (labelPaint.textSize + 6f * density)
         if (right <= left || bottom <= top) return
 
         val minTime = points.first().first
@@ -86,11 +101,37 @@ class PotWaterLevelChartView @JvmOverloads constructor(
         fun x(time: Long): Float = left + (time - minTime).toFloat() / timeSpan * (right - left)
         fun y(vorrat: Double): Float = bottom - (vorrat / kapazitaetMm).toFloat().coerceIn(0f, 1f) * (bottom - top)
 
-        // Gießschwelle (50 % der Kapazität)
-        val schwelleY = y(kapazitaetMm * PlantWaterCalculator.GIESSSCHWELLE_ANTEIL)
-        canvas.drawLine(left, schwelleY, right, schwelleY, thresholdPaint)
+        drawYAxis(canvas, left, right, top, y(0.0), y(kapazitaetMm * schwelleAnteil))
+        drawCurve(canvas, left, bottom, ::x, ::y)
+        drawNowMarker(canvas, top, bottom, ::x)
+        drawWaterings(canvas, minTime, maxTime, bottom, ::x)
+        drawXAxis(canvas, left, right, bottom, minTime, maxTime)
+    }
 
-        // Vorratskurve als gefüllte Fläche
+    private fun drawYAxis(
+        canvas: Canvas,
+        left: Float,
+        right: Float,
+        top: Float,
+        yZero: Float,
+        ySchwelle: Float,
+    ) {
+        labelPaint.textAlign = Paint.Align.RIGHT
+        val labelX = left - 6f * density
+        canvas.drawText("0 %", labelX, yZero - 2f * density, labelPaint)
+        canvas.drawText("100 %", labelX, top + labelPaint.textSize, labelPaint)
+
+        canvas.drawLine(left, ySchwelle, right, ySchwelle, thresholdPaint)
+        thresholdLabelPaint.textAlign = Paint.Align.RIGHT
+        canvas.drawText(
+            "${(schwelleAnteil * 100).toInt()} %",
+            labelX,
+            ySchwelle + thresholdLabelPaint.textSize / 3f,
+            thresholdLabelPaint,
+        )
+    }
+
+    private fun drawCurve(canvas: Canvas, left: Float, bottom: Float, x: (Long) -> Float, y: (Double) -> Float) {
         val linePath = Path()
         val fillPath = Path()
         points.forEachIndexed { index, (time, vorrat) ->
@@ -105,23 +146,40 @@ class PotWaterLevelChartView @JvmOverloads constructor(
                 fillPath.lineTo(px, py)
             }
         }
-        fillPath.lineTo(x(maxTime), bottom)
+        fillPath.lineTo(x(points.last().first), bottom)
         fillPath.close()
         canvas.drawPath(fillPath, fillPaint)
         canvas.drawPath(linePath, linePaint)
+    }
 
-        // "Jetzt"-Markierung
+    private fun drawNowMarker(canvas: Canvas, top: Float, bottom: Float, x: (Long) -> Float) {
+        val minTime = points.first().first
+        val maxTime = points.last().first
         if (nowEpochMillis in minTime..maxTime) {
-            val nowX = x(nowEpochMillis)
-            canvas.drawLine(nowX, top, nowX, bottom, nowPaint)
+            canvas.drawLine(x(nowEpochMillis), top, x(nowEpochMillis), bottom, nowPaint)
         }
+    }
 
-        // Gieß-Ereignisse als Punkte am unteren Rand
+    private fun drawWaterings(canvas: Canvas, minTime: Long, maxTime: Long, bottom: Float, x: (Long) -> Float) {
         val radius = 5f * density
         for (wateredAt in wateringTimestamps) {
             if (wateredAt in minTime..maxTime) {
                 canvas.drawCircle(x(wateredAt), bottom, radius, wateringPaint)
             }
+        }
+    }
+
+    private fun drawXAxis(canvas: Canvas, left: Float, right: Float, bottom: Float, minTime: Long, maxTime: Long) {
+        val labelY = bottom + labelPaint.textSize + 4f * density
+        labelPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText(dateFormat.format(Date(minTime)), left, labelY, labelPaint)
+        labelPaint.textAlign = Paint.Align.RIGHT
+        canvas.drawText(dateFormat.format(Date(maxTime)), right, labelY, labelPaint)
+        if (nowEpochMillis in minTime..maxTime) {
+            labelPaint.textAlign = Paint.Align.CENTER
+            val timeSpan = (maxTime - minTime).coerceAtLeast(1)
+            val nowX = left + (nowEpochMillis - minTime).toFloat() / timeSpan * (right - left)
+            canvas.drawText(dateFormat.format(Date(nowEpochMillis)), nowX, labelY, labelPaint)
         }
     }
 }

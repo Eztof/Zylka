@@ -239,9 +239,10 @@ selbst nach.
   Dringlichkeit, mit Fortschrittsbalken (Restvorrat in %), "Gießen in X
   Tagen" bzw. "Jetzt gießen" und einem Button "Gegossen". Danach ein kurzer,
   überspringbarer Dialog zum Feedback (überfällig / passend / war noch
-  feucht) - siehe Selbstkalibrierung unten. Erinnerung (an/aus + Uhrzeit,
-  Standard 18:00) direkt auf dem Screen, technisch identisch zum
-  Abfallkalender (siehe dort).
+  feucht) - siehe Selbstkalibrierung unten. Erinnerung (an/aus + Feuchte-
+  Schwellenwert in %, Standard 50) direkt auf dem Screen: keine feste
+  Uhrzeit, die Benachrichtigung feuert genau dann, wenn die Prognose eines
+  Topfs den eingestellten Wert unterschreitet.
 - **Topf anlegen/bearbeiten** (`PotEditActivity`): Name, Durchmesser (mit
   sofort berechneter Volumen-/Kapazitäts-Vorschau), Standort, optionale
   Position (sonst wird bei jeder Prognose der Gerätestandort verwendet),
@@ -301,8 +302,9 @@ Standortfaktor-Startwerte: frei = 1.0, unterDach = 0.5, innen = 0.25.
     vorrat(t) = clamp(vorrat(t-1) − ET_topf(t) + regen(t) × regenfaktor, 0, kapazitaetMm)
 
 Regenfaktor: frei = 1.0, unterDach = 0.0, innen = 0.0. Nach jedem Gießen
-startet der Vorrat wieder bei voller Kapazität; die Gießschwelle liegt bei
-50 % der Kapazität.
+startet der Vorrat wieder bei voller Kapazität; die Gießschwelle ist der in
+`PlantsHomeActivity` eingestellte Feuchte-Schwellenwert (Standard 50 % der
+Kapazität, per Schieberegler 20-80 % einstellbar).
 
 **Startwert der Kapazität.** Topfvolumen als Kegelstumpf (obere Öffnung =
 Durchmesser, untere Öffnung ≈ 70 % davon, Höhe ≈ 0.85 × Durchmesser), davon
@@ -560,7 +562,7 @@ app/src/main/java/com/oliver/zylka/
 │       ├── PlantWaterCalculator.kt   # Alle Formeln (Verdunstung, Bilanz, Kalibrierung)
 │       ├── WeatherRepository.kt      # Open-Meteo-Abruf + weather_cache/{uid}
 │       ├── PlantForecastRepository.kt  # Bündelt Pots+Plants+Waterings+Wetter zu Prognosen
-│       └── PlantPrefs.kt             # Erinnerung an/aus + Uhrzeit (SharedPreferences)
+│       └── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
