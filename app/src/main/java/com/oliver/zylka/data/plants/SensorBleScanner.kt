@@ -313,12 +313,20 @@ class SensorBleScanner(private val context: Context) {
         return readings
     }
 
-    /** Rohdaten-Variante von [readSensorGatt] für die Diagnose (`SensorDiagnosticActivity`):
+    /**
+     * Rohdaten-Variante von [readSensorGatt] für die Diagnose (`SensorDiagnosticActivity`):
      * verbindet per GATT und liefert **jede** Notification/Read-Antwort jeder Characteristic als
      * Hex-Dump, unabhängig davon, ob [parseGattNotification] sie erkennt - läuft, solange der
-     * Flow gesammelt wird, trennt beim Verlassen automatisch wieder. */
+     * Flow gesammelt wird, trennt beim Verlassen automatisch wieder.
+     *
+     * Mit [sendHistoryRequest] wird zusätzlich genau die Kommandosequenz aus [readHistory]
+     * geschickt, aber **ungefiltert** protokolliert, was zurückkommt - auch wenn es nicht ins
+     * von [readHistory] erwartete Rahmenformat passt. Damit lässt sich sehen, ob das Gerät
+     * überhaupt antwortet (falsche Characteristic/Checksumme/Schreibtyp) oder ob "nur" das
+     * Rahmenformat von der Erwartung abweicht.
+     */
     @SuppressLint("MissingPermission")
-    fun observeGattFlow(macAddress: String): Flow<RawScanResult> = callbackFlow {
+    fun observeGattFlow(macAddress: String, sendHistoryRequest: Boolean = false, recordCount: Int = 500): Flow<RawScanResult> = callbackFlow {
         if (!hasPermissions()) {
             close(IllegalStateException("Bluetooth-Berechtigungen fehlen"))
             return@callbackFlow
@@ -330,16 +338,22 @@ class SensorBleScanner(private val context: Context) {
         }
         val device = adapter.getRemoteDevice(macAddress)
         var gatt: BluetoothGatt? = null
+        var writeCharacteristic: BluetoothGattCharacteristic? = null
+        val servicesReady = CompletableDeferred<Boolean>()
         val callback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
                 when (newState) {
                     BluetoothProfile.STATE_CONNECTED -> g.discoverServices()
-                    BluetoothProfile.STATE_DISCONNECTED -> close(IllegalStateException("GATT-Verbindung getrennt"))
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        servicesReady.complete(false)
+                        close(IllegalStateException("GATT-Verbindung getrennt"))
+                    }
                 }
             }
 
             override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
+                    servicesReady.complete(false)
                     close(IllegalStateException("GATT-Service-Suche fehlgeschlagen (Code $status)"))
                     return
                 }
@@ -351,6 +365,8 @@ class SensorBleScanner(private val context: Context) {
                         }
                     }
                 }
+                writeCharacteristic = g.services.firstNotNullOfOrNull { it.getCharacteristic(WRITE_CHARACTERISTIC_UUID) }
+                servicesReady.complete(true)
             }
 
             override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
@@ -362,6 +378,26 @@ class SensorBleScanner(private val context: Context) {
             }
         }
         gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+        if (sendHistoryRequest) {
+            launch {
+                if (servicesReady.await() != true) return@launch
+                val writeChar = writeCharacteristic ?: return@launch
+                val writeType = if (writeChar.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) {
+                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                } else {
+                    BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                }
+                val now = Calendar.getInstance()
+                delay(300)
+                gatt?.writeCharacteristic(writeChar, buildDatetimeSyncCommand(now), writeType)
+                delay(200)
+                gatt?.writeCharacteristic(writeChar, SESSION_INIT_COMMAND, writeType)
+                delay(200)
+                gatt?.writeCharacteristic(writeChar, OFFSET_COMMAND, writeType)
+                delay(200)
+                gatt?.writeCharacteristic(writeChar, buildHistoryRequestCommand(now, recordCount), writeType)
+            }
+        }
         awaitClose {
             runCatching { gatt?.disconnect() }
             runCatching { gatt?.close() }

@@ -34,12 +34,17 @@ import java.util.Locale
  * Rohdaten-Diagnose: protokolliert **jedes** empfangene BLE-Paket in der Nähe (nicht nur den
  * letzten Wert je Gerät) mit Zeitstempel, Name/MAC, Signalstärke und dem vollen Hex-Dump.
  *
- * Zwei Modi:
+ * Drei Modi:
  * - **Scan** (Standard): passives Advertisement-Scannen, wie bisher.
  * - **GATT** (Menü "Per GATT verbinden"): verbindet sich mit einem ausgewählten Gerät und
  *   abonniert/liest *alle* Characteristics roh - für Geräte (wie sich bei diesem TP357 gezeigt
  *   hat), die ihre Messwerte nicht im Advertisement, sondern nur über eine aktive Verbindung
  *   herausrücken. Siehe [SensorBleScanner.observeGattFlow].
+ * - **Verlaufsanfrage testen** (Menü "Verlaufsanfrage testen (roh)"): wie GATT, schickt aber
+ *   zusätzlich genau die Kommandosequenz aus [SensorBleScanner.readHistory] und protokolliert
+ *   jede Antwort roh - auch wenn sie nicht ins dort erwartete Rahmenformat passt. Damit lässt
+ *   sich unterscheiden, ob das Gerät gar nicht antwortet oder "nur" das Antwortformat von der
+ *   Erwartung abweicht.
  *
  * Ein Filter grenzt das Log auf ein einzelnes Gerät ein, "Kopieren" legt einen einzelnen
  * Eintrag in die Zwischenablage, "Exportieren" teilt das komplette (gefilterte) Log als Text -
@@ -61,6 +66,11 @@ class SensorDiagnosticActivity : AppCompatActivity() {
 
     /** null = passiver Advertisement-Scan; gesetzt = per GATT mit dieser MAC verbunden. */
     private var gattMac: String? = null
+
+    /** Nur relevant, wenn [gattMac] gesetzt ist: ob beim Verbinden zusätzlich die
+     * Historien-Anfrage-Sequenz aus [SensorBleScanner.readHistory] geschickt wird (roh
+     * protokolliert, unabhängig vom erwarteten Antwortformat). */
+    private var sendHistoryRequestOnConnect = false
 
     private val requestBlePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -103,9 +113,11 @@ class SensorDiagnosticActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val connected = gattMac != null
         menu.findItem(R.id.action_gatt_connect)?.title = getString(
-            if (gattMac != null) R.string.sensor_diagnostic_action_gatt_stop else R.string.sensor_diagnostic_action_gatt_start,
+            if (connected) R.string.sensor_diagnostic_action_gatt_stop else R.string.sensor_diagnostic_action_gatt_start,
         )
+        menu.findItem(R.id.action_gatt_history_request)?.isVisible = !connected
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -113,6 +125,7 @@ class SensorDiagnosticActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.action_export_diagnostic -> exportLog()
             R.id.action_gatt_connect -> onGattConnectClicked()
+            R.id.action_gatt_history_request -> onGattHistoryRequestClicked()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -120,12 +133,27 @@ class SensorDiagnosticActivity : AppCompatActivity() {
 
     private fun onGattConnectClicked() {
         if (gattMac != null) {
-            gattMac = null
-            binding.textCaption.setText(R.string.sensor_diagnostic_caption)
-            invalidateOptionsMenu()
-            startScanning()
+            disconnectGattMode()
             return
         }
+        pickGattTargetDevice { mac ->
+            sendHistoryRequestOnConnect = false
+            connectGattMode(mac)
+        }
+    }
+
+    private fun onGattHistoryRequestClicked() {
+        if (gattMac != null) {
+            disconnectGattMode()
+            return
+        }
+        pickGattTargetDevice { mac ->
+            sendHistoryRequestOnConnect = true
+            connectGattMode(mac)
+        }
+    }
+
+    private fun pickGattTargetDevice(onPicked: (String) -> Unit) {
         val macs = log.map { it.macAddress }.distinct()
         if (macs.isEmpty()) {
             Toast.makeText(this, R.string.sensor_diagnostic_gatt_no_devices, Toast.LENGTH_SHORT).show()
@@ -134,13 +162,26 @@ class SensorDiagnosticActivity : AppCompatActivity() {
         val labels = macs.map { mac -> log.first { it.macAddress == mac }.name?.let { "$it ($mac)" } ?: mac }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(R.string.sensor_diagnostic_gatt_pick_title)
-            .setItems(labels) { _, which ->
-                gattMac = macs[which]
-                binding.textCaption.text = getString(R.string.sensor_diagnostic_gatt_active, macs[which])
-                invalidateOptionsMenu()
-                startScanning()
-            }
+            .setItems(labels) { _, which -> onPicked(macs[which]) }
             .show()
+    }
+
+    private fun connectGattMode(mac: String) {
+        gattMac = mac
+        binding.textCaption.text = getString(
+            if (sendHistoryRequestOnConnect) R.string.sensor_diagnostic_gatt_history_active else R.string.sensor_diagnostic_gatt_active,
+            mac,
+        )
+        invalidateOptionsMenu()
+        startScanning()
+    }
+
+    private fun disconnectGattMode() {
+        gattMac = null
+        sendHistoryRequestOnConnect = false
+        binding.textCaption.setText(R.string.sensor_diagnostic_caption)
+        invalidateOptionsMenu()
+        startScanning()
     }
 
     private fun startScanning() {
@@ -154,7 +195,7 @@ class SensorDiagnosticActivity : AppCompatActivity() {
         scanJob = lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 try {
-                    val flow = gattMac?.let { bleScanner.observeGattFlow(it) } ?: bleScanner.scanRawFlow()
+                    val flow = gattMac?.let { bleScanner.observeGattFlow(it, sendHistoryRequestOnConnect) } ?: bleScanner.scanRawFlow()
                     flow.collect { result ->
                         log.addFirst(result)
                         while (log.size > MAX_LOG_ENTRIES) log.removeLast()

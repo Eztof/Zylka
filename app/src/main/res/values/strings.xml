@@ -239,4 +239,6 @@
     <string name="sensor_diagnostic_gatt_pick_title">Gerät für GATT-Verbindung wählen</string>
     <string name="sensor_diagnostic_gatt_no_devices">Noch kein Gerät gesehen - erst kurz scannen</string>
     <string name="sensor_diagnostic_gatt_active">Verbunden (GATT): %1$s - alle Notify-/Read-Characteristics</string>
+    <string name="sensor_diagnostic_action_gatt_history_test">Verlaufsanfrage testen (roh)</string>
+    <string name="sensor_diagnostic_gatt_history_active">Verbunden (GATT): %1$s - Verlaufsanfrage geschickt, alle Antworten roh protokolliert</string>
 </resources>
