@@ -28,11 +28,13 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
- * Topf anlegen/bearbeiten: Name, Durchmesser (mit live berechneter Kapazitäts-Vorschau,
- * [PlantWaterCalculator.startKapazitaet]), Standort, Standortfaktor (Startwert aus dem
- * Standort, danach frei nachjustierbar - kalibriert sich nicht automatisch mit), optionale
- * Position, zugeordnete Pflanzen. Ein neuer Topf wird beim ersten "+ Pflanze hinzufügen"
- * automatisch gespeichert, damit eine `potId` für die Zuordnung existiert.
+ * Topf anlegen/bearbeiten: Name, Durchmesser ODER Volumen (beide Felder rechnen sich
+ * ineinander um, mit live berechneter Kapazitäts-Vorschau,
+ * [PlantWaterCalculator.startKapazitaet]/[PlantWaterCalculator.durchmesserFuerVolumen]),
+ * Standort, Standortfaktor (Startwert aus dem Standort, danach frei nachjustierbar -
+ * kalibriert sich nicht automatisch mit), optionale Position, zugeordnete Pflanzen. Ein
+ * neuer Topf wird beim ersten "+ Pflanze hinzufügen" automatisch gespeichert, damit eine
+ * `potId` für die Zuordnung existiert.
  */
 class PotEditActivity : AppCompatActivity() {
 
@@ -44,6 +46,10 @@ class PotEditActivity : AppCompatActivity() {
 
     private var currentPot = Pot()
     private var assignedPlants: List<Plant> = emptyList()
+
+    /** Verhindert eine Endlosschleife, während Durchmesser- und Volumen-Feld sich
+     * gegenseitig synchron halten. */
+    private var syncingSizeFields = false
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -57,10 +63,15 @@ class PotEditActivity : AppCompatActivity() {
         binding.toolbar.applyStatusBarTopInset()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        binding.inputDurchmesser.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-            override fun afterTextChanged(s: Editable?) = updateCapacityPreview()
+        binding.inputDurchmesser.addTextChangedListener(simpleWatcher {
+            if (syncingSizeFields) return@simpleWatcher
+            updateCapacityPreview()
+            syncVolumenFromDurchmesser()
+        })
+        binding.inputVolumen.addTextChangedListener(simpleWatcher {
+            if (syncingSizeFields) return@simpleWatcher
+            syncDurchmesserFromVolumen()
+            updateCapacityPreview()
         })
         binding.toggleStandort.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
@@ -106,21 +117,38 @@ class PotEditActivity : AppCompatActivity() {
         binding.inputStandortfaktor.setText(formatDouble(pot.standortfaktor))
         pot.latitude?.let { binding.inputLatitude.setText(it.toString()) }
         pot.longitude?.let { binding.inputLongitude.setText(it.toString()) }
+        syncVolumenFromDurchmesser()
         updateCapacityPreview()
     }
 
+    /** Volumen-Feld aus dem Durchmesser-Feld nachziehen (z. B. nach Laden eines Topfs oder
+     * Tippen im Durchmesser-Feld). */
+    private fun syncVolumenFromDurchmesser() {
+        val durchmesser = parseDouble(binding.inputDurchmesser.text) ?: return
+        val liter = PlantWaterCalculator.startKapazitaet(durchmesser).volumenLiter
+        syncingSizeFields = true
+        binding.inputVolumen.setText(formatDouble(liter))
+        syncingSizeFields = false
+    }
+
+    /** Umgekehrte Richtung: Durchmesser-Feld aus dem Volumen-Feld nachziehen (Tippen im
+     * Volumen-Feld), über [PlantWaterCalculator.durchmesserFuerVolumen]. */
+    private fun syncDurchmesserFromVolumen() {
+        val liter = parseDouble(binding.inputVolumen.text) ?: return
+        val durchmesser = PlantWaterCalculator.durchmesserFuerVolumen(liter)
+        syncingSizeFields = true
+        binding.inputDurchmesser.setText(formatDouble(durchmesser))
+        syncingSizeFields = false
+    }
+
     private fun updateCapacityPreview() {
-        val durchmesser = binding.inputDurchmesser.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
+        val durchmesser = parseDouble(binding.inputDurchmesser.text)
         if (durchmesser == null || durchmesser <= 0.0) {
             binding.textCapacityPreview.text = getString(R.string.pot_edit_capacity_preview_empty)
             return
         }
         val estimate = PlantWaterCalculator.startKapazitaet(durchmesser)
-        binding.textCapacityPreview.text = getString(
-            R.string.pot_edit_capacity_preview,
-            formatDouble(estimate.volumenLiter),
-            formatDouble(estimate.kapazitaetMm),
-        )
+        binding.textCapacityPreview.text = getString(R.string.pot_edit_capacity_preview, formatDouble(estimate.kapazitaetMm))
     }
 
     private fun onUseLocationClicked() {
@@ -162,7 +190,7 @@ class PotEditActivity : AppCompatActivity() {
         binding.containerPlants.removeAllViews()
         for (plant in assignedPlants) {
             val row = ItemPlantMiniBinding.inflate(layoutInflater, binding.containerPlants, false)
-            row.textPlantName.text = plant.name
+            row.textPlantName.text = if (plant.anzahl > 1) "${plant.anzahl}× ${plant.name}" else plant.name
             row.textPlantCategory.text = getString(plant.kategorie.label)
             row.root.setOnClickListener {
                 startActivity(PlantEditActivity.intent(this, currentPot.id, plant.id))
@@ -174,16 +202,15 @@ class PotEditActivity : AppCompatActivity() {
     private suspend fun ensureSaved(): String? {
         val uid = authRepository.currentUser?.uid ?: return null
         val name = binding.inputName.text?.toString()?.trim().orEmpty()
-        val durchmesser = binding.inputDurchmesser.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
+        val durchmesser = parseDouble(binding.inputDurchmesser.text)
         if (name.isBlank() || durchmesser == null || durchmesser <= 0.0) {
             Toast.makeText(this, R.string.pot_edit_error_required, Toast.LENGTH_SHORT).show()
             return null
         }
         val standort = standortForButtonId(binding.toggleStandort.checkedButtonId) ?: Standort.FREI
-        val standortfaktor = binding.inputStandortfaktor.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
-            ?: standort.standortfaktorDefault
-        val latitude = binding.inputLatitude.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
-        val longitude = binding.inputLongitude.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
+        val standortfaktor = parseDouble(binding.inputStandortfaktor.text) ?: standort.standortfaktorDefault
+        val latitude = parseDouble(binding.inputLatitude.text)
+        val longitude = parseDouble(binding.inputLongitude.text)
 
         // Durchmesser geändert (oder neuer Topf) -> Kapazität geometrisch neu ansetzen; die
         // bisherige Selbstkalibrierung basierte sonst auf der falschen Geometrie.
@@ -246,6 +273,14 @@ class PotEditActivity : AppCompatActivity() {
 
     private fun formatDouble(value: Double): String =
         if (value == Math.floor(value)) value.toLong().toString() else String.format(Locale.GERMANY, "%.1f", value)
+
+    private fun parseDouble(text: CharSequence?): Double? = text?.toString()?.replace(',', '.')?.toDoubleOrNull()
+
+    private fun simpleWatcher(afterChanged: () -> Unit): TextWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+        override fun afterTextChanged(s: Editable?) = afterChanged()
+    }
 
     companion object {
         private const val EXTRA_POT_ID = "pot_id"

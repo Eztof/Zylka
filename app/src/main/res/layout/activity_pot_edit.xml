@@ -44,24 +44,59 @@
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/pot_edit_hint_durchmesser"
-                app:boxCornerRadiusBottomEnd="14dp"
-                app:boxCornerRadiusBottomStart="14dp"
-                app:boxCornerRadiusTopEnd="14dp"
-                app:boxCornerRadiusTopStart="14dp"
-                app:suffixText="@string/pot_edit_suffix_cm">
+                android:layout_marginTop="18dp"
+                android:text="@string/pot_edit_label_groesse"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="@color/brand_on_surface" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/input_durchmesser"
-                    android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_weight="1"
+                    android:hint="@string/pot_edit_hint_durchmesser"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:suffixText="@string/pot_edit_suffix_cm">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_durchmesser"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:hint="@string/pot_edit_hint_volumen"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:suffixText="@string/pot_edit_suffix_liter">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_volumen"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/text_capacity_preview"
@@ -70,7 +105,15 @@
                 android:layout_marginTop="8dp"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="@color/brand_on_surface_variant"
-                tools:text="≈ 12,5 L Volumen · Kapazität 38 mm" />
+                tools:text="Kapazität ≈ 38 mm" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/pot_edit_groesse_caption"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="@color/brand_outline" />
 
             <TextView
                 android:layout_width="match_parent"

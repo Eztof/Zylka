@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
+import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.plants.PlantForecastRepository
 import com.oliver.zylka.data.plants.PlantPrefs
 import com.oliver.zylka.data.plants.Pot
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
 class PotDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPotDetailBinding
+    private val authRepository = AuthRepository()
     private val potRepository = PotRepository()
     private val wateringRepository = WateringRepository()
     private val forecastRepository by lazy { PlantForecastRepository(applicationContext) }
@@ -92,10 +94,11 @@ class PotDetailActivity : AppCompatActivity() {
     }
 
     private fun loadChart() {
+        val uid = authRepository.currentUser?.uid ?: return
         lifecycleScope.launch {
             val schwelleAnteil = PlantPrefs(applicationContext).schwellenwertProzent / 100.0
             val waterings = wateringRepository.loadWaterings(potId)
-            val forecasts = forecastRepository.computeForecasts(currentPot.uid, schwelleAnteil)
+            val forecasts = forecastRepository.computeForecasts(uid, schwelleAnteil)
             val forecast = forecasts.firstOrNull { it.pot.id == potId }
             binding.textNoWeatherHint.isVisible = forecast == null || !forecast.hasLocation
 

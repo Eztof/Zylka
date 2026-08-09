@@ -18,8 +18,8 @@ import com.oliver.zylka.databinding.ActivityPlantEditBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
 import kotlinx.coroutines.launch
 
-/** Pflanze anlegen/bearbeiten: Name, Art (nur gespeichert, nicht ausgewertet), Kategorie
- * (belegt den Verdunstungsfaktor `kcBasis` vor, frei überschreibbar), Größenfaktor. */
+/** Pflanze anlegen/bearbeiten: Name, Kategorie (belegt den Verdunstungsfaktor `kcBasis` vor,
+ * frei überschreibbar), Größenfaktor, Anzahl (mehrere gleiche Pflanzen als ein Eintrag). */
 class PlantEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPlantEditBinding
@@ -72,10 +72,10 @@ class PlantEditActivity : AppCompatActivity() {
 
     private fun applyPlantToForm(p: Plant) {
         binding.inputName.setText(p.name)
-        binding.inputSpecies.setText(p.species.orEmpty())
         chipFor(p.kategorie).isChecked = true
         binding.inputKcBasis.setText(formatDouble(p.kcBasis))
         binding.inputGroessenfaktor.setText(formatDouble(p.groessenfaktor))
+        binding.inputAnzahl.setText(p.anzahl.toString())
     }
 
     private fun save() {
@@ -88,16 +88,17 @@ class PlantEditActivity : AppCompatActivity() {
         val kcBasis = binding.inputKcBasis.text?.toString()?.replace(',', '.')?.toDoubleOrNull()
             ?: kategorie.kcBasisDefault
         val groessenfaktor = binding.inputGroessenfaktor.text?.toString()?.replace(',', '.')?.toDoubleOrNull() ?: 1.0
+        val anzahl = binding.inputAnzahl.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 1
         val uid = authRepository.currentUser?.uid ?: return
 
         val toSave = plant.copy(
             uid = uid,
             potId = potId,
             name = name,
-            species = binding.inputSpecies.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
             kategorie = kategorie,
             kcBasis = kcBasis,
             groessenfaktor = groessenfaktor,
+            anzahl = anzahl,
         )
         lifecycleScope.launch {
             plantRepository.save(toSave)

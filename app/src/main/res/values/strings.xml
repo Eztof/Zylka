@@ -150,10 +150,14 @@
     <string name="pot_edit_title_new">Neuer Topf</string>
     <string name="pot_edit_title_edit">Topf bearbeiten</string>
     <string name="pot_edit_hint_name">Name</string>
+    <string name="pot_edit_label_groesse">Größe</string>
     <string name="pot_edit_hint_durchmesser">Durchmesser</string>
     <string name="pot_edit_suffix_cm">cm</string>
+    <string name="pot_edit_hint_volumen">Volumen</string>
+    <string name="pot_edit_suffix_liter">L</string>
+    <string name="pot_edit_groesse_caption">Durchmesser oben am Topf oder Volumen - eins reicht, der Rest wird umgerechnet. Nötig, weil die Verdunstung von der Erdoberfläche abhängt, nicht nur von der Literzahl.</string>
     <string name="pot_edit_capacity_preview_empty">–</string>
-    <string name="pot_edit_capacity_preview">%1$s L · %2$s mm</string>
+    <string name="pot_edit_capacity_preview">Kapazität ≈ %1$s mm</string>
     <string name="pot_edit_label_standort">Standort</string>
     <string name="pot_edit_hint_standortfaktor">Standortfaktor</string>
     <string name="pot_edit_label_position">Position</string>
@@ -170,10 +174,11 @@
     <string name="plant_edit_title_new">Neue Pflanze</string>
     <string name="plant_edit_title_edit">Pflanze bearbeiten</string>
     <string name="plant_edit_hint_name">Name</string>
-    <string name="plant_edit_hint_species">Art</string>
     <string name="plant_edit_label_kategorie">Kategorie</string>
     <string name="plant_edit_hint_kc_basis">kcBasis</string>
     <string name="plant_edit_hint_groessenfaktor">Größenfaktor</string>
+    <string name="plant_edit_hint_anzahl">Anzahl</string>
+    <string name="plant_edit_hint_caption">Größenfaktor: 1 = normal groß. Anzahl: mehrere gleiche Pflanzen als ein Eintrag.</string>
     <string name="plant_edit_error_name_required">Name fehlt</string>
     <string name="plant_edit_delete_confirm">Pflanze löschen?</string>
 

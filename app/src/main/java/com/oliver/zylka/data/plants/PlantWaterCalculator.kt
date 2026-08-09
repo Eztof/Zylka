@@ -1,6 +1,7 @@
 package com.oliver.zylka.data.plants
 
 import kotlin.math.PI
+import kotlin.math.cbrt
 
 /** Eine stündliche Wetter-Messung/-Prognose: Referenzverdunstung ET0 (mm/h) und
  * Niederschlag (mm) für diese Stunde, an einem festen Zeitpunkt. */
@@ -42,8 +43,8 @@ object PlantWaterCalculator {
     private const val KAPAZITAET_MAX_ANTEIL = 5.0
     private const val MILLIS_PRO_STUNDE = 3_600_000.0
 
-    /** Kc_topf = Summe über alle Pflanzen im Topf von (kcBasis × groessenfaktor). */
-    fun kcTopf(plants: List<Plant>): Double = plants.sumOf { it.kcBasis * it.groessenfaktor }
+    /** Kc_topf = Summe über alle Pflanzen im Topf von (kcBasis × groessenfaktor × anzahl). */
+    fun kcTopf(plants: List<Plant>): Double = plants.sumOf { it.kcBasis * it.groessenfaktor * it.anzahl }
 
     /** ET_topf(t) = ET0(t) × standortfaktor × Kc_topf */
     fun etTopf(et0: Double, standortfaktor: Double, kcTopf: Double): Double = et0 * standortfaktor * kcTopf
@@ -70,6 +71,22 @@ object PlantWaterCalculator {
         val grundflaecheM2 = PI * rObenM * rObenM
         val kapazitaetMm = if (grundflaecheM2 > 0.0) (verfuegbarLiter / grundflaecheM2) else 0.0
         return CapacityEstimate(kapazitaetMm = kapazitaetMm, volumenLiter = volumenLiter)
+    }
+
+    /**
+     * Umkehrung von [startKapazitaet]: welcher Durchmesser (cm) ergäbe bei gleicher
+     * Kegelstumpf-Annahme das angegebene Erdvolumen? Damit lässt sich in `PotEditActivity`
+     * wahlweise der Durchmesser messen ODER direkt das (z. B. auf der Verpackung
+     * angegebene) Topfvolumen in Litern eingeben - beide Felder rechnen sich ineinander um.
+     * volumenLiter = K × durchmesserCm³, also durchmesserCm = ∛(volumenLiter / K).
+     */
+    fun durchmesserFuerVolumen(volumenLiter: Double): Double {
+        if (volumenLiter <= 0.0) return 0.0
+        val k = 1.0 + UNTERE_OEFFNUNG_ANTEIL + UNTERE_OEFFNUNG_ANTEIL * UNTERE_OEFFNUNG_ANTEIL
+        // Aus startKapazitaet() algebraisch hergeleitete Konstante K, sodass
+        // volumenLiter = K × durchmesserCm³ (Herleitung siehe Kegelstumpf-Formel oben).
+        val kVolumen = PI * HOEHE_ANTEIL * k / 12000.0
+        return cbrt(volumenLiter / kVolumen)
     }
 
     /**
