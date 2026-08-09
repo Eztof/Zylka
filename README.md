@@ -393,14 +393,18 @@ keine Messwerte. `SensorBleScanner.readSensor` probiert deshalb beides
 nacheinander: zuerst per GATT verbinden und alle Notify-/Read-fähigen
 Characteristics abhören/lesen, erst danach als Fallback passives
 Advertisement-Scannen.
-⚠️ **Beide Byte-Formate sind reverse-engineered und nicht mit echter
-Hardware gegen die offizielle ThermoPro-App verifiziert** -
-`SensorBleScanner.parseTp357` (Advertisement) und
-`SensorBleScanner.parseGattNotification` (GATT; Byte-Layout aus einem
-Nutzer-Skript für ein anderes, ThermoPro-ähnliches Projekt übernommen),
-beide mit Plausibilitätsprüfung gegen offensichtlich falsche Werte. Vor
-produktivem Einsatz gegen die ThermoPro-App gegenprüfen; weicht das
-Format ab, reicht es, die jeweilige `parse*`-Funktion anzupassen.
+⚠️ Beide Byte-Formate sind reverse-engineered. `SensorBleScanner.parseGattNotification`
+(GATT, der genutzte Weg) ist inzwischen an echten Hex-Dumps eines TP357S
+bestätigt: zwei Notifications ~7 Minuten auseinander (`C2 00 00 10 01 1F 2C`
+→ 27,2 °C/31 %, danach `C2 00 00 11 01 1F 2C` → 27,3 °C/31 %) zeigen eine
+plausible Temperaturänderung bei stabiler Feuchte; Byte 6 (`0x2C`,
+vermutlich Batterie-%) blieb dabei unverändert. `SensorBleScanner.parseTp357`
+(Advertisement-Fallback) bleibt unverifiziert - bei diesem Gerät stehen im
+Advertisement ohnehin keine sinnvollen Messwerte, nur der GATT-Weg liefert
+welche. Beide Funktionen prüfen die Werte trotzdem auf Plausibilität und
+verwerfen offensichtlich falsche Daten. Bei einem anderen Gerät/einer
+anderen Firmware können die Offsets abweichen - dann reicht es, die
+jeweilige `parse*`-Funktion anzupassen.
 
 Zum Identifizieren eines Sensors und Ableiten seines tatsächlichen
 Byte-Formats gibt es unter „Sensoren" → „Bluetooth-Diagnose"

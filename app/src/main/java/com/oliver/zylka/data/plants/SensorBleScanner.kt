@@ -55,14 +55,17 @@ data class RawScanResult(
  * Characteristics abhören/lesen) und fällt erst danach auf passives Advertisement-Scannen
  * zurück.
  *
- * **Wichtig:** Beide Byte-Formate ([parseGattNotification], [parseTp357]) sind nicht offiziell
- * dokumentiert und unverifiziert - [parseGattNotification] übernimmt eine Vermutung aus einem
- * Byte-Layout, das für ein anderes (ThermoPro-ähnliches) Projekt beobachtet wurde, ohne
- * Garantie, dass es für dieses Gerät stimmt. Nach dem ersten erfolgreichen Pull unbedingt gegen
- * die Werte in der offiziellen ThermoPro-App prüfen. Unplausible Werte (außerhalb -40..85 °C
- * bzw. 0..100 %) werden bewusst verworfen (null) statt falsche Daten zu liefern. Solange kein
- * Format zuverlässig passt, hilft [scanRawFlow]/[observeGattFlow] (über `SensorDiagnosticActivity`)
- * beim Ableiten des tatsächlichen Layouts.
+ * **Wichtig:** Beide Byte-Formate sind reverse-engineered, nicht offiziell dokumentiert. Für
+ * [parseGattNotification] liegt inzwischen ein echter Hex-Dump eines TP357S vor (zwei
+ * Notifications im Abstand von ~7 Minuten: `C2 00 00 10 01 1F 2C` → 27,2 °C/31 %, danach
+ * `C2 00 00 11 01 1F 2C` → 27,3 °C/31 % - Temperatur/Feuchte plausibel verändert, Byte 6
+ * (`0x2C`, vermutlich Batterie-%) über die 7 Minuten unverändert), das Format gilt damit für
+ * dieses Gerät als bestätigt. [parseTp357] (Advertisement-Fallback) bleibt unverifiziert - bei
+ * diesem Gerät liefert das Advertisement ohnehin keine sinnvollen Werte, nur der GATT-Weg
+ * funktioniert. Unplausible Werte (außerhalb -40..85 °C bzw. 0..100 %) werden bewusst verworfen
+ * (null) statt falsche Daten zu liefern. Bei einem anderen Gerät/Format hilft
+ * [scanRawFlow]/[observeGattFlow] (über `SensorDiagnosticActivity`) beim Ableiten des
+ * tatsächlichen Layouts.
  */
 class SensorBleScanner(private val context: Context) {
 
@@ -223,12 +226,13 @@ class SensorBleScanner(private val context: Context) {
     private fun shortUuid(uuid: UUID): String = uuid.toString().substringBefore('-').trimStart('0').ifEmpty { "0" }
 
     /**
-     * Bestes-Wissen-Parsing einer GATT-Notification/-Read-Antwort (Byte-Layout aus einem
-     * anderen, ThermoPro-ähnlichen Projekt übernommen, NICHT für dieses Gerät verifiziert!):
-     * Byte 0 Response-Typ (z. B. 0xC2), Byte 1-2 unbekannt, Byte 3-4 Temperatur×10 (uint16
-     * Little-Endian), Byte 5 Feuchte in %, Byte 6 unbekannt. Passt der erste Pull nicht zu den
-     * echten Werten, hier die Offsets anhand eines per `observeGattFlow` gesammelten Hex-Dumps
-     * korrigieren.
+     * Parsing einer GATT-Notification/-Read-Antwort: Byte 0 Response-Typ (0xC2), Byte 1-2
+     * unbekannt (bislang immer 0x00 0x00), Byte 3-4 Temperatur×10 (uint16 Little-Endian),
+     * Byte 5 Feuchte in %, Byte 6 unbekannt (vermutlich Batterie-% - blieb über mehrere Minuten
+     * unverändert, während sich Temperatur/Feuchte plausibel bewegten). An einem echten TP357S
+     * bestätigt (`C2 00 00 10 01 1F 2C` → 27,2 °C/31 %, wenig später `C2 00 00 11 01 1F 2C` →
+     * 27,3 °C/31 %) - für ein anderes Gerät/eine andere Firmware können die Offsets trotzdem
+     * abweichen; dann hier anhand eines per `observeGattFlow` gesammelten Hex-Dumps korrigieren.
      */
     private fun parseGattNotification(data: ByteArray): BleReading? {
         if (data.size < 6) return null
