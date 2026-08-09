@@ -173,9 +173,9 @@ class SensorDetailActivity : AppCompatActivity() {
             }
             val intervalMillis = SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES * 60_000L
             val now = System.currentTimeMillis()
-            val points = history.mapIndexed { index, reading ->
+            val points = history.map { reading ->
                 HistoricalPoint(
-                    measuredAt = Date(now - index * intervalMillis),
+                    measuredAt = Date(now - reading.index * intervalMillis),
                     temperatureC = reading.temperatureC,
                     humidityPercent = reading.humidityPercent,
                 )

@@ -439,14 +439,32 @@ von [github.com/giovannipizzi/pytp357s](https://github.com/giovannipizzi/pytp357
 schickt die vom Protokoll vorgesehene Kommandosequenz (Session-Init,
 Offset, Datenanfrage) und setzt die über mehrere Notifications gestückelte
 Antwort wieder zu einer Liste von Temperatur-/Feuchte-Tripeln zusammen.
-⚠️ **Zwei Einschränkungen, bewusst in Kauf genommen:**
+
+⚠️ **An echten Aufnahmen korrigiert/eingeschränkt:**
+- Der Rahmenabschluss wird **nicht** aus dem 3-Byte-Feld nach `cc cc 01`
+  berechnet (die ursprüngliche, KI-zusammengefasste Protokollbeschreibung
+  interpretierte es als Byte-Länge der Antwort - an zwei echten TP357S-
+  Aufnahmen nachweislich falsch, die tatsächliche Antwort war beide Male
+  deutlich kürzer). Stattdessen wird das literale `66 66`-Rahmenende
+  erkannt, mit einer Plausibilitätsprüfung (Bytes zwischen Kopf und Ende
+  müssen sich glatt in 3-Byte-Datensätze plus 1 Prüfsummen-Byte aufteilen
+  lassen) gegen ein zufälliges `66 66` mitten in den Nutzdaten.
+- **Ungelöst:** Bei manchen Übertragungen bringen einzelne Notifications
+  mitten im Frame die 3-Byte-Ausrichtung durcheinander (vermutlich doppelt
+  gesendete/wiederholte Fragmente, Ursache nicht abschließend geklärt).
+  Betroffene Datensätze decodieren zu physikalisch unmöglichen Werten und
+  werden über die ohnehin vorhandene Plausibilitätsprüfung (-40..85 °C /
+  0..100 %) einzeln übersprungen statt importiert - die geladene Historie
+  kann dadurch lückenhaft sein, enthält aber nie unplausible Werte.
 - Das Protokoll liefert **keinen Zeitstempel pro Datensatz**, nur die
-  Reihenfolge (neuester zuerst). `SensorDetailActivity` rekonstruiert
-  Zeitpunkte als `jetzt − Index × Aufnahme-Intervall`, mit einem
-  angenommenen Intervall von 1 Minute (`SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES`,
-  aus dem Referenzprojekt übernommen, am eigenen Gerät nicht geprüft) - ist
-  das tatsächliche Log-Intervall am Sensor anders eingestellt, verschieben
-  sich die Zeitstempel entsprechend, die Werte selbst bleiben aber korrekt.
+  Reihenfolge (neuester zuerst, `HistoryReading.index`). `SensorDetailActivity`
+  rekonstruiert Zeitpunkte als `jetzt − Index × Aufnahme-Intervall`, mit
+  einem angenommenen Intervall von 1 Minute
+  (`SensorBleScanner.HISTORY_RECORD_INTERVAL_MINUTES`, aus dem
+  Referenzprojekt übernommen, am eigenen Gerät nicht geprüft) - der
+  ursprüngliche Geräte-Index bleibt dabei auch für übersprungene
+  Datensätze erhalten, damit sich keine Lücken zu falschen Zeitpunkten
+  verschieben.
 - Mehrfaches Drücken von „Verlauf laden" legt dieselben Messwerte mit
   jeweils neu berechneten (leicht verschobenen) Zeitstempeln erneut an -
   es gibt keine Duplikaterkennung.
