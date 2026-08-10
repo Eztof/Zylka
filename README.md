@@ -293,13 +293,13 @@ weather_cache/{uid}         // ein Dokument je Nutzer, ein Eintrag je Standort
   locations: { "<lat,lon gerundet>": { fetchedAt, latitude, longitude, hourly } }
 
 sensors/{sensorId}
-  uid (wer angelegt hat), name, macAddress,
-  lastTemperatureC, lastHumidityPercent, lastMeasuredAt (denormalisiert für
-  die Startseiten-Kachel, wird bei jedem Pull aktualisiert)
+  uid (wer angelegt hat), name, bluetoothAdresse,
+  letzteTemperaturC, letzteFeuchtigkeitProzent, letzteMessungAm
+  (denormalisiert für die Startseiten-Kachel, wird bei jedem Pull aktualisiert)
 
 sensor_readings/{autoId}    // append-only Log, wie waterings
-  uid (wer gepullt hat), sensorId, measuredAt (Server-Timestamp),
-  temperatureC, humidityPercent
+  uid (wer gepullt hat), sensorId, gemessenAm (Server-Timestamp oder
+  rekonstruiert aus der Gerätehistorie), temperaturC, feuchtigkeitProzent
 ```
 
 `pots`, `plants`, `waterings`, `sensors` und `sensor_readings` sind zwischen
@@ -308,6 +308,18 @@ deine Partnerin) - jeder sieht und bearbeitet alle Töpfe, Pflanzen und
 Sensoren, unabhängig davon, wer sie angelegt hat; das `uid`-Feld ist reine
 Herkunfts-Information. Nur der Wetter-Cache bleibt strikt pro Konto (siehe
 Firestore-Regeln unten).
+
+**Feldnamen in `sensors`/`sensor_readings` sind bewusst Deutsch** - anders
+als die ursprüngliche erste Version (`macAddress`/`lastTemperatureC`/
+`lastHumidityPercent`/`lastMeasuredAt`/`measuredAt`/`temperatureC`/
+`humidityPercent`), die in der Firebase-Konsole neben den überwiegend
+deutschen Feldern von `pots`/`plants` schwer zuzuordnen war. Kein separater
+Migrationsschritt nötig: `SensorRepository`/`SensorReadingRepository` lesen
+noch vorhandene alte Feldnamen transparent mit; bei `sensors` verschwinden
+sie automatisch beim nächsten Speichern des Sensors (`set()` ersetzt das
+ganze Dokument), bei `sensor_readings` (append-only, nie überschrieben)
+bleiben bereits angelegte Einträge dauerhaft unter den alten Namen - neue
+Einträge nutzen ab sofort die neuen.
 
 ### Rechenweg (`PlantWaterCalculator`, ohne Android-Abhängigkeiten)
 

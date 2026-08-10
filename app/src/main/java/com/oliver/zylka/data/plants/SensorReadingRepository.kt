@@ -16,6 +16,13 @@ data class HistoricalPoint(val measuredAt: Date, val temperatureC: Double, val h
 /**
  * Append-only Messwert-Log (`sensor_readings/{autoId}`) eines [Sensor]s, wie
  * [WateringRepository]: nie geändert oder gelöscht, nur angelegt.
+ *
+ * Feldnamen in Firestore sind bewusst Deutsch (`gemessenAm`/`temperaturC`/
+ * `feuchtigkeitProzent`) statt der ursprünglichen englischen Namen (`measuredAt`/
+ * `temperatureC`/`humidityPercent`) - gleicher Grund wie bei [SensorRepository]. `uid`/
+ * `sensorId` bleiben wie in den anderen Sammlungen unverändert. Da dieses Log append-only ist
+ * (nie überschrieben), bleiben bereits angelegte Einträge dauerhaft unter den alten Namen -
+ * [toReadingOrNull] liest deshalb beide.
  */
 class SensorReadingRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
@@ -40,11 +47,11 @@ class SensorReadingRepository(private val db: FirebaseFirestore = FirebaseFirest
 
     suspend fun recordReading(uid: String, sensorId: String, temperatureC: Double, humidityPercent: Double) {
         val data = mapOf(
-            "uid" to uid,
+            FIELD_UID to uid,
             FIELD_SENSOR_ID to sensorId,
-            "measuredAt" to FieldValue.serverTimestamp(),
-            "temperatureC" to temperatureC,
-            "humidityPercent" to humidityPercent,
+            FIELD_MEASURED_AT to FieldValue.serverTimestamp(),
+            FIELD_TEMPERATURE to temperatureC,
+            FIELD_HUMIDITY to humidityPercent,
         )
         collection.add(data).await()
     }
@@ -61,11 +68,11 @@ class SensorReadingRepository(private val db: FirebaseFirestore = FirebaseFirest
                 batch.set(
                     collection.document(),
                     mapOf(
-                        "uid" to uid,
+                        FIELD_UID to uid,
                         FIELD_SENSOR_ID to sensorId,
-                        "measuredAt" to point.measuredAt,
-                        "temperatureC" to point.temperatureC,
-                        "humidityPercent" to point.humidityPercent,
+                        FIELD_MEASURED_AT to point.measuredAt,
+                        FIELD_TEMPERATURE to point.temperatureC,
+                        FIELD_HUMIDITY to point.humidityPercent,
                     ),
                 )
             }
@@ -74,19 +81,31 @@ class SensorReadingRepository(private val db: FirebaseFirestore = FirebaseFirest
     }
 
     private fun DocumentSnapshot.toReadingOrNull(): SensorReading? {
-        val uid = getString("uid") ?: return null
+        val uid = getString(FIELD_UID) ?: return null
         val sensorId = getString(FIELD_SENSOR_ID) ?: return null
         return SensorReading(
             id = id,
             uid = uid,
             sensorId = sensorId,
-            measuredAt = getTimestamp("measuredAt")?.toDate(),
-            temperatureC = getDouble("temperatureC") ?: 0.0,
-            humidityPercent = getDouble("humidityPercent") ?: 0.0,
+            measuredAt = (getTimestamp(FIELD_MEASURED_AT) ?: getTimestamp(LEGACY_MEASURED_AT))?.toDate(),
+            temperatureC = getDouble(FIELD_TEMPERATURE) ?: getDouble(LEGACY_TEMPERATURE) ?: 0.0,
+            humidityPercent = getDouble(FIELD_HUMIDITY) ?: getDouble(LEGACY_HUMIDITY) ?: 0.0,
         )
     }
 
     companion object {
+        private const val FIELD_UID = "uid"
         private const val FIELD_SENSOR_ID = "sensorId"
+
+        // Verständlichere deutsche Feldnamen, siehe Klassen-Doc.
+        private const val FIELD_MEASURED_AT = "gemessenAm"
+        private const val FIELD_TEMPERATURE = "temperaturC"
+        private const val FIELD_HUMIDITY = "feuchtigkeitProzent"
+
+        // Alte Feldnamen, nur noch für den Lese-Fallback auf bereits angelegte Einträge - dieses
+        // Log ist append-only und wird nie umgeschrieben, siehe Klassen-Doc.
+        private const val LEGACY_MEASURED_AT = "measuredAt"
+        private const val LEGACY_TEMPERATURE = "temperatureC"
+        private const val LEGACY_HUMIDITY = "humidityPercent"
     }
 }

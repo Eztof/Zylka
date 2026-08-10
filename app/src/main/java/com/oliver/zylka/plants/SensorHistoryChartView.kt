@@ -119,12 +119,17 @@ class SensorHistoryChartView @JvmOverloads constructor(
         val minPoint = points.minByOrNull { it.second } ?: return
         val maxPoint = points.maxByOrNull { it.second } ?: return
         val radius = dp(4f)
+        // Bei einer noch sehr schmalen View (z. B. im allerersten Layout-Durchlauf) läge die
+        // untere Grenze über der oberen - coerceIn würde dann abstürzen (IllegalArgumentException:
+        // "Cannot coerce value to an empty range"). Fällt in dem Fall auf die reine Mitte zurück.
+        val labelLeft = dp(24f)
+        val labelRight = (width - dp(24f)).coerceAtLeast(labelLeft)
 
         markerLabelPaint.textAlign = Paint.Align.CENTER
         canvas.drawCircle(x(maxPoint.first), y(maxPoint.second), radius, markerPaint)
         canvas.drawText(
             formatValue(maxValue),
-            x(maxPoint.first).coerceIn(dp(24f), width - dp(24f)),
+            x(maxPoint.first).coerceIn(labelLeft, labelRight),
             (y(maxPoint.second) - radius - dp(4f)).coerceAtLeast(markerLabelPaint.textSize),
             markerLabelPaint,
         )
@@ -132,7 +137,7 @@ class SensorHistoryChartView @JvmOverloads constructor(
         canvas.drawCircle(x(minPoint.first), y(minPoint.second), radius, markerPaint)
         canvas.drawText(
             formatValue(minValue),
-            x(minPoint.first).coerceIn(dp(24f), width - dp(24f)),
+            x(minPoint.first).coerceIn(labelLeft, labelRight),
             y(minPoint.second) + radius + markerLabelPaint.textSize,
             markerLabelPaint,
         )
