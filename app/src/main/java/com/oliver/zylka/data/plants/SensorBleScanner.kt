@@ -165,13 +165,13 @@ class SensorBleScanner(private val context: Context) {
      * TP357S selbst nicht geprüft). Falls am Gerät ein anderes Log-Intervall eingestellt ist,
      * verschieben sich die daraus rekonstruierten Zeitstempel entsprechend.
      *
-     * **Bekannte Einschränkung, an echten Aufnahmen bestätigt:** Bei manchen Übertragungen
-     * bringen einzelne Notifications mitten im Frame die 3-Byte-Ausrichtung der Datensätze
-     * durcheinander (vermutlich doppelt gesendete/wiederholte Fragmente - Ursache noch nicht
-     * geklärt, siehe [appendHistoryChunk]). Betroffene Datensätze werden über die
-     * Plausibilitätsprüfung erkannt und **einzeln übersprungen** statt falsche Werte zu
-     * importieren - die zurückgegebene Liste kann dadurch lückenhaft sein, aber nie unplausible
-     * Werte enthalten. Liefert null bei Timeout/fehlenden Characteristics/Verbindungsabbruch.
+     * Die Zusammensetzung der über mehrere Notifications gestückelten Antwort erfolgt paketweise
+     * (jedes Notification-Paket wird für sich 3-Byte-ausgerichtet, siehe
+     * [HistoryAssembly.consumeChunk]) - an zwei vollständigen echten Aufnahmen bestätigt (0 von
+     * 32 bzw. 0 von 37 Datensätzen unplausibel). Die Plausibilitätsprüfung (-40..85 °C /
+     * 0..100 %) bleibt als Sicherheitsnetz bestehen und überspringt einzelne Datensätze, falls
+     * doch einmal ein unerwartetes Paket dazwischenfunkt. Liefert null bei Timeout/fehlenden
+     * Characteristics/Verbindungsabbruch.
      */
     @SuppressLint("MissingPermission")
     suspend fun readHistory(macAddress: String, recordCount: Int = 500, timeoutMillis: Long = 25_000): List<HistoryReading>? {
@@ -182,7 +182,7 @@ class SensorBleScanner(private val context: Context) {
         val servicesReady = CompletableDeferred<Boolean>()
         val historyResult = CompletableDeferred<List<HistoryReading>?>()
         var writeCharacteristic: BluetoothGattCharacteristic? = null
-        val payload = mutableListOf<Byte>()
+        val assembly = HistoryAssembly()
 
         val callback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
@@ -214,7 +214,7 @@ class SensorBleScanner(private val context: Context) {
 
             override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
                 if (characteristic.uuid != NOTIFY_CHARACTERISTIC_UUID) return
-                appendHistoryChunk(payload, value)?.let { historyResult.complete(it) }
+                if (assembly.consumeChunk(value)) historyResult.complete(assembly.readings)
             }
         }
 
@@ -287,54 +287,62 @@ class SensorBleScanner(private val context: Context) {
     }
 
     /**
-     * Sammelt die (über mehrere Notifications gestückelte) Antwort auf die Historien-Anfrage im
-     * Rahmen `cc cc 01 [3 Bytes, Bedeutung ungeklärt] 00 [Temp₁₆ Temp₈ Feuchte]… [CS] 66 66`.
-     *
-     * **Wichtig, an echten Aufnahmen korrigiert:** Die 3 Bytes nach `01` wurden ursprünglich
-     * (nach einer KI-Zusammenfassung der Protokollbeschreibung) als 24-Bit-Little-Endian-
-     * Byteanzahl der Antwort interpretiert - das ist an zwei echten Aufnahmen eines TP357S
-     * nachweislich falsch (die tatsächliche Antwort war beide Male deutlich kürzer, als diese
-     * Zahl vermuten ließe). Der Abschluss wird deshalb **nicht mehr** aus dieser Zahl berechnet,
-     * sondern am literalen `66 66`-Rahmenende erkannt, mit einer Plausibilitätsprüfung (die
-     * Bytes zwischen Kopf und Rahmenende müssen sich glatt in 3-Byte-Datensätze plus 1
-     * Prüfsummen-Byte aufteilen lassen) als Schutz gegen ein zufälliges `66 66` mitten in den
-     * Nutzdaten.
-     *
-     * Offene Frage, noch nicht gelöst: bei einer echten Aufnahme lagen mehrere Notifications
-     * mitten im Frame vor, die die 3-Byte-Ausrichtung durcheinanderbringen (vermutlich
-     * doppelt gesendete/wiederholte Fragmente) - betroffene Datensätze decodieren dann zu
-     * physikalisch unmöglichen Werten. Statt zu raten, werden solche Datensätze über die
-     * ohnehin vorhandene Plausibilitätsprüfung (-40..85 °C / 0..100 %) einzeln verworfen, statt
-     * falsche Werte zu importieren - die zurückgegebene Liste kann dadurch lückenhaft sein.
+     * Sammelzustand für eine Historien-Antwort über mehrere Notifications (siehe
+     * [HistoryAssembly.consumeChunk]).
      */
-    private fun appendHistoryChunk(buffer: MutableList<Byte>, chunk: ByteArray): List<HistoryReading>? {
-        buffer.addAll(chunk.toList())
-        if (buffer.size < 7) return null
-        if (buffer[0] != 0xCC.toByte() || buffer[1] != 0xCC.toByte() || buffer[2] != 0x01.toByte() || buffer[6] != 0x00.toByte()) {
-            buffer.clear()
-            return null
-        }
-        val size = buffer.size
-        if (size < 10) return null
-        val endsWithTerminator = buffer[size - 2] == 0x66.toByte() && buffer[size - 1] == 0x66.toByte()
-        if (!endsWithTerminator) return null
-        val payloadBytes = size - 7 - 2 // Nutzdaten inkl. der 1 Prüfsummen-Byte am Ende
-        if (payloadBytes <= 0 || (payloadBytes - 1) % 3 != 0) return null // (noch) kein vollständiger Rahmen
-
-        val records = buffer.subList(7, 7 + payloadBytes - 1) // ohne das Prüfsummen-Byte
+    private class HistoryAssembly {
+        var frameStarted = false
+        var recordIndex = 0
         val readings = mutableListOf<HistoryReading>()
+    }
+
+    /**
+     * Verarbeitet **ein einzelnes** BLE-Notification-Paket der Historien-Antwort im Rahmen
+     * `cc cc 01 [3 Bytes, Bedeutung ungeklärt] 00 [Temp₁₆ Temp₈ Feuchte]… 66 66`.
+     *
+     * **An zwei vollständigen echten Aufnahmen bestätigt:** Das TP357S richtet die 3-Byte-
+     * Datensätze offenbar **pro Notification-Paket neu aus**, statt den Byte-Strom nahtlos über
+     * Paketgrenzen hinweg fortzusetzen - 1-2 Restbytes am Ende eines Pakets, die sich nicht mehr
+     * zu einem vollen 3-Byte-Datensatz ergänzen, gehören NICHT zum nächsten Paket und werden
+     * verworfen (kein Übertrag). Naive durchgehende Verkettung (die ursprüngliche Annahme)
+     * erzeugte an genau diesen Paketgrenzen physikalisch unmögliche Werte; mit paketweiser
+     * Ausrichtung decodieren beide Aufnahmen vollständig plausibel (0 von 32 bzw. 0 von 37
+     * Datensätzen unplausibel). Die 3 Bytes nach `01` im ersten Paket sind weiterhin ungeklärt
+     * (ursprünglich als Byte-Länge der Gesamtantwort interpretiert, was sich als falsch erwiesen
+     * hat) und werden nur noch als Teil des 7-Byte-Kopfs übersprungen, nicht mehr ausgewertet.
+     *
+     * @return true, wenn dieses Paket das Rahmenende (`66 66`) enthielt - [readings] ist dann
+     * vollständig.
+     */
+    private fun HistoryAssembly.consumeChunk(chunk: ByteArray): Boolean {
+        var body = chunk
+        if (!frameStarted) {
+            if (body.size < 7 || body[0] != 0xCC.toByte() || body[1] != 0xCC.toByte() || body[2] != 0x01.toByte()) {
+                return false // noch kein gültiger Rahmenbeginn - z. B. eine dazwischenfunkende
+                // Live-Notification auf derselben Characteristic, siehe [parseGattNotification].
+            }
+            body = body.copyOfRange(7, body.size)
+            frameStarted = true
+        }
+        var isLast = false
+        if (body.size >= 2 && body[body.size - 2] == 0x66.toByte() && body[body.size - 1] == 0x66.toByte()) {
+            body = body.copyOfRange(0, body.size - 2)
+            isLast = true
+        }
+        val usableBytes = (body.size / 3) * 3
         var i = 0
-        while (i + 2 < records.size) {
-            val tempRawUnsigned = ((records[i + 1].toInt() and 0xFF) shl 8) or (records[i].toInt() and 0xFF)
+        while (i < usableBytes) {
+            val tempRawUnsigned = ((body[i + 1].toInt() and 0xFF) shl 8) or (body[i].toInt() and 0xFF)
             val tempRaw = if (tempRawUnsigned > 32767) tempRawUnsigned - 65536 else tempRawUnsigned
             val temperature = tempRaw / 10.0
-            val humidity = (records[i + 2].toInt() and 0xFF).toDouble()
+            val humidity = (body[i + 2].toInt() and 0xFF).toDouble()
             if (temperature in -40.0..85.0 && humidity in 0.0..100.0) {
-                readings.add(HistoryReading(i / 3, temperature, humidity))
+                readings.add(HistoryReading(recordIndex, temperature, humidity))
             }
+            recordIndex++
             i += 3
         }
-        return readings
+        return isLast
     }
 
     /**

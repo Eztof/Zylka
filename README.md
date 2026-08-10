@@ -443,22 +443,26 @@ schickt die vom Protokoll vorgesehene Kommandosequenz (Session-Init,
 Offset, Datenanfrage) und setzt die über mehrere Notifications gestückelte
 Antwort wieder zu einer Liste von Temperatur-/Feuchte-Tripeln zusammen.
 
-⚠️ **An echten Aufnahmen korrigiert/eingeschränkt:**
+⚠️ **An zwei vollständigen echten Aufnahmen korrigiert:**
 - Der Rahmenabschluss wird **nicht** aus dem 3-Byte-Feld nach `cc cc 01`
   berechnet (die ursprüngliche, KI-zusammengefasste Protokollbeschreibung
-  interpretierte es als Byte-Länge der Antwort - an zwei echten TP357S-
-  Aufnahmen nachweislich falsch, die tatsächliche Antwort war beide Male
-  deutlich kürzer). Stattdessen wird das literale `66 66`-Rahmenende
-  erkannt, mit einer Plausibilitätsprüfung (Bytes zwischen Kopf und Ende
-  müssen sich glatt in 3-Byte-Datensätze plus 1 Prüfsummen-Byte aufteilen
-  lassen) gegen ein zufälliges `66 66` mitten in den Nutzdaten.
-- **Ungelöst:** Bei manchen Übertragungen bringen einzelne Notifications
-  mitten im Frame die 3-Byte-Ausrichtung durcheinander (vermutlich doppelt
-  gesendete/wiederholte Fragmente, Ursache nicht abschließend geklärt).
-  Betroffene Datensätze decodieren zu physikalisch unmöglichen Werten und
-  werden über die ohnehin vorhandene Plausibilitätsprüfung (-40..85 °C /
-  0..100 %) einzeln übersprungen statt importiert - die geladene Historie
-  kann dadurch lückenhaft sein, enthält aber nie unplausible Werte.
+  interpretierte es als Byte-Länge der Antwort - an echten TP357S-Aufnahmen
+  nachweislich falsch, die tatsächliche Antwort war beide Male deutlich
+  kürzer). Stattdessen wird das literale `66 66`-Rahmenende erkannt.
+- Das TP357S richtet die 3-Byte-Datensätze (Temperatur + Feuchte) offenbar
+  **pro BLE-Notification-Paket neu aus**, statt den Byte-Strom nahtlos über
+  Paketgrenzen hinweg fortzusetzen: 1-2 Restbytes am Ende eines Pakets, die
+  sich nicht mehr zu einem vollen Datensatz ergänzen, gehören **nicht** zum
+  nächsten Paket und werden verworfen (kein Übertrag) -
+  `SensorBleScanner.HistoryAssembly.consumeChunk` richtet deshalb jedes
+  Paket einzeln aus. Naive durchgehende Verkettung (die ursprüngliche
+  Annahme) erzeugte an genau diesen Paketgrenzen physikalisch unmögliche
+  Werte (z. B. 716 °C); mit paketweiser Ausrichtung decodieren zwei
+  vollständig aufzeichnete Testläufe fehlerfrei (0 von 32 bzw. 0 von 37
+  Datensätzen unplausibel). Die Plausibilitätsprüfung (-40..85 °C /
+  0..100 %) bleibt trotzdem als Sicherheitsnetz bestehen und überspringt
+  einzelne Datensätze, falls doch einmal ein unerwartetes Paket
+  dazwischenfunkt (z. B. eine Live-Notification mitten im Frame).
 - Das Protokoll liefert **keinen Zeitstempel pro Datensatz**, nur die
   Reihenfolge (neuester zuerst, `HistoryReading.index`). `SensorDetailActivity`
   rekonstruiert Zeitpunkte als `jetzt − Index × Aufnahme-Intervall`, mit
