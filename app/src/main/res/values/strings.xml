@@ -110,6 +110,7 @@
     <string name="action_delete">Löschen</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_edit">Bearbeiten</string>
+    <string name="action_add">Hinzufügen</string>
 
     <!-- Standort (Pot) -->
     <string name="standort_frei">Frei</string>
@@ -307,4 +308,11 @@
     <string name="hochzeit_dienstleister_status_angebot_erhalten">Angebot erhalten</string>
     <string name="hochzeit_dienstleister_status_gebucht">Gebucht</string>
     <string name="hochzeit_dienstleister_status_abgesagt">Abgesagt</string>
+
+    <!-- Hochzeitsplaner: Termine -->
+    <string name="hochzeit_termin_uebersicht_title">Termine</string>
+    <string name="hochzeit_termin_empty">Noch keine Termine vorgeschlagen</string>
+    <string name="hochzeit_termin_dialog_title">%1$s-Termin</string>
+    <string name="hochzeit_termin_dialog_notiz_hint">Notiz (optional)</string>
+    <string name="hochzeit_termin_dialog_kosten_hint">Kosten in € (optional)</string>
 </resources>
