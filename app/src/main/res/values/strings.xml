@@ -330,4 +330,21 @@
     <string name="hochzeit_gast_edit_notiz_hint">Notiz (optional)</string>
     <string name="hochzeit_gast_edit_error_required">Bitte einen Namen eingeben</string>
     <string name="hochzeit_gast_edit_delete_confirm">Diesen Gast wirklich löschen?</string>
+
+    <!-- Hochzeitsplaner: Dienstleister -->
+    <string name="hochzeit_dienstleister_liste_title">Dienstleister</string>
+    <string name="hochzeit_dienstleister_search_hint">Dienstleister suchen</string>
+    <string name="hochzeit_dienstleister_summary">%1$d Dienstleister (%2$d gebucht, %3$d offen), %4$s € gebucht</string>
+    <string name="hochzeit_dienstleister_empty">Noch keine Dienstleister eingetragen</string>
+    <string name="hochzeit_dienstleister_action_add">Dienstleister hinzufügen</string>
+    <string name="hochzeit_dienstleister_edit_title_new">Neuer Dienstleister</string>
+    <string name="hochzeit_dienstleister_edit_title_edit">Dienstleister bearbeiten</string>
+    <string name="hochzeit_dienstleister_edit_name_hint">Name</string>
+    <string name="hochzeit_dienstleister_edit_label_kategorie">Kategorie</string>
+    <string name="hochzeit_dienstleister_edit_label_status">Status</string>
+    <string name="hochzeit_dienstleister_edit_kosten_hint">Kosten in € (optional)</string>
+    <string name="hochzeit_dienstleister_edit_kontakt_hint">Kontakt: Telefon, E-Mail oder Website (optional)</string>
+    <string name="hochzeit_dienstleister_edit_notiz_hint">Notiz (optional)</string>
+    <string name="hochzeit_dienstleister_edit_error_required">Bitte einen Namen eingeben</string>
+    <string name="hochzeit_dienstleister_edit_delete_confirm">Diesen Dienstleister wirklich löschen?</string>
 </resources>

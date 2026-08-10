@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/brand_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.Zylka.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:elevation="2dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hochzeit_dienstleister_search_hint"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusTopStart="14dp"
+            app:startIconDrawable="@drawable/ic_search">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/input_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/text_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="@color/brand_on_surface_variant"
+            tools:text="6 Dienstleister - 2 gebucht, 4 offen - 1.450,00 € gebucht" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_kategorie"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            app:singleLine="false">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_dj"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_dj" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_catering"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_catering" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_fotograf"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_fotograf" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_blumen"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_blumen" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_location"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_location" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_torte"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_torte" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_dekoration"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_dekoration" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_transport"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_transport" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_brautmode"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_brautmode" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_kategorie_sonstiges"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_kategorie_sonstiges" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:singleLine="false">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status_idee"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_status_idee" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status_angefragt"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_status_angefragt" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status_angebot_erhalten"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_status_angebot_erhalten" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status_gebucht"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_status_gebucht" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status_abgesagt"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/hochzeit_dienstleister_status_abgesagt" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <TextView
+            android:id="@+id/text_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="@string/hochzeit_dienstleister_empty"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="@color/brand_on_surface_variant"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_dienstleister"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="16dp"
+            tools:listitem="@layout/item_dienstleister" />
+    </LinearLayout>
+</LinearLayout>
