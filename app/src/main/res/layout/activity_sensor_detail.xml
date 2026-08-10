@@ -236,14 +236,6 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/sensor_detail_load_history_caption"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="@color/brand_outline" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
                 android:text="@string/sensor_detail_label_range"
                 android:textAppearance="?attr/textAppearanceTitleSmall"
@@ -405,33 +397,6 @@
                         tools:visibility="visible" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
-                android:text="@string/sensor_detail_label_history"
-                android:textAppearance="?attr/textAppearanceTitleSmall"
-                android:textColor="@color/brand_on_surface" />
-
-            <TextView
-                android:id="@+id/text_history_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/sensor_detail_history_empty"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/brand_on_surface_variant"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_history"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false"
-                tools:listitem="@layout/item_sensor_reading" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

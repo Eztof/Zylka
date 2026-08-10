@@ -832,8 +832,7 @@ app/src/main/java/com/oliver/zylka/
 │   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
 │   ├── SensorAdapter.kt             # RecyclerView-Adapter: Temp/Wärme-Index/Feuchte + Gauge
 │   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
-│   ├── SensorDetailActivity.kt      # Status-Kopf, Zeitraum-Charts, Verlauf, "Jetzt abrufen"
-│   ├── SensorReadingAdapter.kt      # RecyclerView-Adapter für die rohe Messwerteliste
+│   ├── SensorDetailActivity.kt      # Status-Kopf, Zeitraum-Charts, "Jetzt abrufen"
 │   ├── ComfortGaugeView.kt          # Canvas-Custom-View: Feuchte-Gradient-Gauge mit Knob
 │   ├── SensorHistoryChartView.kt    # Canvas-Custom-View: Temperatur-/Feuchte-Kurve mit Min/Max
 │   ├── SensorDiagnosticActivity.kt  # Rohdaten-Log aller BLE-Pakete, Filter, Export

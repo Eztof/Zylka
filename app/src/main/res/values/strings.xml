@@ -213,11 +213,7 @@
     <string name="sensor_detail_action_pull">Jetzt abrufen</string>
     <string name="sensor_detail_action_diagnose">Rohdaten-Diagnose</string>
     <string name="sensor_detail_action_load_history">Verlauf laden</string>
-    <string name="sensor_detail_load_history_caption">Lädt die im Sensor gespeicherte Historie. Zeitpunkte sind geschätzt (Aufnahme-Abstand unbekannt) - mehrfaches Laden kann Werte doppelt anlegen.</string>
     <string name="sensor_detail_label_range">Zeitraum</string>
-    <string name="sensor_detail_label_history">Verlauf</string>
-    <string name="sensor_detail_history_empty">Noch keine Messwerte.</string>
-    <string name="sensor_reading_values">%1$.1f °C · %2$.0f %%</string>
     <!-- Karten-/Detail-Layout an die ThermoPro-App angelehnt (Komfort-Gauge, Temperatur-/
          Wärme-Index-/Feuchte-Statistik) - siehe ComfortGaugeView/SensorHistoryChartView. -->
     <string name="sensor_stat_temperature">Temperatur</string>

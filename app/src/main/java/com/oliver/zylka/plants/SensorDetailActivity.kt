@@ -14,7 +14,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.plants.HeatIndexCalculator
@@ -45,7 +44,6 @@ class SensorDetailActivity : AppCompatActivity() {
     private val sensorRepository = SensorRepository()
     private val sensorReadingRepository = SensorReadingRepository()
     private val bleScanner by lazy { SensorBleScanner(applicationContext) }
-    private val historyAdapter = SensorReadingAdapter()
     private val timeFormat = SimpleDateFormat("d.M., HH:mm", Locale.GERMANY)
 
     private lateinit var sensorId: String
@@ -82,8 +80,6 @@ class SensorDetailActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         sensorId = intent.getStringExtra(EXTRA_SENSOR_ID) ?: run { finish(); return }
-        binding.recyclerHistory.layoutManager = LinearLayoutManager(this)
-        binding.recyclerHistory.adapter = historyAdapter
         binding.buttonPull.setOnClickListener { ensureBlePermissions { pullReading() } }
         binding.buttonLoadHistory.setOnClickListener { ensureBlePermissions { pullHistory() } }
         binding.chartTemperature.setColors(
@@ -123,8 +119,6 @@ class SensorDetailActivity : AppCompatActivity() {
                 launch {
                     sensorReadingRepository.observeReadings(sensorId).collect { readings ->
                         allReadings = readings
-                        historyAdapter.submitList(readings)
-                        binding.textHistoryEmpty.isVisible = readings.isEmpty()
                         renderCharts()
                     }
                 }
