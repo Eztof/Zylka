@@ -7,6 +7,7 @@ import android.content.Intent
 import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.plants.PlantForecastRepository
 import com.oliver.zylka.data.plants.PlantPrefs
+import com.oliver.zylka.data.plants.PotForecast
 
 /**
  * Plant Gieß-Erinnerungen als Kette einzelner exakter Alarme - exakt wie `WasteAlarmScheduler`:
@@ -21,21 +22,36 @@ object PlantAlarmScheduler {
 
     private const val REQUEST_CODE = 4301
 
+    /** Berechnet die Prognosen selbst (für Aufrufer ohne bereits vorliegende Liste - Alarm-/
+     * Boot-Receiver, Erinnerung an/aus, Schwellenwert geändert). Liegt schon eine frisch
+     * berechnete Liste vor (z. B. `PlantsHomeActivity` nach dem Laden für die Anzeige),
+     * stattdessen direkt [scheduleFor] aufrufen - spart eine komplette zweite Berechnung
+     * (Wetterabruf, Standortabfrage, Firestore-Lesezugriffe je Topf). */
     suspend fun rescheduleNext(context: Context) {
+        val prefs = PlantPrefs(context)
+        val uid = AuthRepository().currentUser?.uid
+        if (!prefs.reminderEnabled || uid == null) {
+            cancel(context)
+            return
+        }
+        val schwelleAnteil = prefs.schwellenwertProzent / 100.0
+        val forecasts = runCatching { PlantForecastRepository(context).computeForecasts(uid, schwelleAnteil) }
+            .getOrNull().orEmpty()
+        scheduleFor(context, forecasts)
+    }
+
+    /** Plant den Alarm anhand einer bereits vorliegenden Prognose-Liste, ohne sie neu zu
+     * berechnen - siehe [rescheduleNext]. */
+    fun scheduleFor(context: Context, forecasts: List<PotForecast>) {
         val prefs = PlantPrefs(context)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val uid = AuthRepository().currentUser?.uid
-        if (!prefs.reminderEnabled || uid == null) {
+        if (!prefs.reminderEnabled) {
             alarmManager.cancel(buildPendingIntent(context))
             return
         }
 
-        val schwelleAnteil = prefs.schwellenwertProzent / 100.0
-        val forecasts = runCatching { PlantForecastRepository(context).computeForecasts(uid, schwelleAnteil) }
-            .getOrNull().orEmpty()
         val next = forecasts.firstOrNull { it.faelligAbEpochMillis != null }
-
         if (next == null) {
             alarmManager.cancel(buildPendingIntent(context))
             return

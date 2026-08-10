@@ -24,9 +24,10 @@ import java.util.Locale
 
 /**
  * Monatskalender für den Regelkalender: Tage antippen setzt die Intensität (0-10, siehe
- * [RegelDayAdapter]/[RegelRepository]), die Prognose-Karte oben zeigt, wann und wie stark die
- * nächste Periode laut [RegelCalculator] voraussichtlich wird. Global/geteilt zwischen allen
- * eingeloggten Nutzern, wie `SensorsActivity`.
+ * [RegelDayAdapter]/[RegelRepository]). Künftige Tage, für die [RegelCalculator] eine Periode
+ * vorhersagt, werden im Grid nur umrandet dargestellt (nie mit echten Einträgen verwechselbar) -
+ * das ist die einzige Prognose-Anzeige, es gibt keinen zusätzlichen Text dazu. Global/geteilt
+ * zwischen allen eingeloggten Nutzern, wie `SensorsActivity`.
  */
 class RegelkalenderActivity : AppCompatActivity() {
 
@@ -37,7 +38,6 @@ class RegelkalenderActivity : AppCompatActivity() {
 
     private val monatsFormat = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.GERMANY)
     private val titelFormat = DateTimeFormatter.ofPattern("EEEE, d. MMMM yyyy", Locale.GERMANY)
-    private val datumFormat = DateTimeFormatter.ofPattern("d.M.yyyy", Locale.GERMANY)
 
     private var alleEintraege: List<RegelEintrag> = emptyList()
     private var aktuellePrognose: RegelPrognose? = null
@@ -68,7 +68,6 @@ class RegelkalenderActivity : AppCompatActivity() {
                     alleEintraege = eintraege
                     val perioden = RegelCalculator.ermittlePerioden(eintraege)
                     aktuellePrognose = RegelCalculator.berechnePrognose(perioden)
-                    renderPrognose()
                     renderMonat()
                 }
             }
@@ -78,21 +77,6 @@ class RegelkalenderActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
-    }
-
-    private fun renderPrognose() {
-        val prognose = aktuellePrognose
-        val naechste = prognose?.perioden?.firstOrNull()
-        binding.textPrognose.text = if (prognose == null || naechste == null) {
-            getString(R.string.regel_prognose_unzureichend)
-        } else {
-            getString(
-                R.string.regel_prognose_text,
-                naechste.startDatum.format(datumFormat),
-                prognose.unsicherheitTage,
-                naechste.tage.size,
-            )
-        }
     }
 
     private fun renderMonat() {

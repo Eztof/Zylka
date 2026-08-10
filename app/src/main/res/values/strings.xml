@@ -142,8 +142,6 @@
     <string name="plants_status_due_in_days">Gießen in %1$d Tagen</string>
     <string name="plants_action_watered">Gegossen</string>
     <string name="plants_stale_weather_hint">Wetterdaten veraltet</string>
-    <string name="plants_sensors_title">Temperatursensoren</string>
-    <string name="plants_sensors_empty">Noch keine Sensoren</string>
 
     <!-- Pflanzen: Benachrichtigung -->
     <string name="plants_notification_title">%1$s gießen</string>
@@ -264,8 +262,6 @@
     <string name="sensor_diagnostic_gatt_history_active">Verbunden (GATT): %1$s - Verlaufsanfrage geschickt, alle Antworten roh protokolliert</string>
 
     <!-- Regelkalender -->
-    <string name="regel_prognose_text">Nächste Periode voraussichtlich ab %1$s (± %2$d Tage), ca. %3$d Tage.</string>
-    <string name="regel_prognose_unzureichend">Noch nicht genug Daten für eine Prognose - trage mindestens zwei vergangene Zyklen ein.</string>
     <string name="regel_action_prev_month">Vorheriger Monat</string>
     <string name="regel_action_next_month">Nächster Monat</string>
     <string name="regel_weekday_mo">Mo</string>
@@ -276,5 +272,4 @@
     <string name="regel_weekday_sa">Sa</string>
     <string name="regel_weekday_so">So</string>
     <string name="regel_dialog_level">Stufe %1$d</string>
-    <string name="regel_grenzen_hinweis">Die Prognose ist eine statistische Fortschreibung deiner eigenen Historie, kein medizinisches Modell - bei unregelmäßigen Zyklen oder wenigen Einträgen kann sie stark abweichen.</string>
 </resources>

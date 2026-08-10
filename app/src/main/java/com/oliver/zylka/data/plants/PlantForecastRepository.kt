@@ -2,6 +2,8 @@ package com.oliver.zylka.data.plants
 
 import android.content.Context
 import com.oliver.zylka.data.kennzeichen.LocationHelper
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /** Fertige Prognose für einen Topf - Ergebnis von [PlantForecastRepository.computeForecasts].
  * [verlauf] ist die komplette simulierte Vorratskurve (Vergangenheit + Prognose, siehe
@@ -51,18 +53,28 @@ class PlantForecastRepository(
     suspend fun computeForecasts(
         currentUid: String,
         schwelleAnteil: Double = PlantWaterCalculator.GIESSSCHWELLE_ANTEIL,
-    ): List<PotForecast> {
+    ): List<PotForecast> = coroutineScope {
         val pots = potRepository.loadPots()
-        if (pots.isEmpty()) return emptyList()
+        if (pots.isEmpty()) return@coroutineScope emptyList()
 
         val plantsByPot = plantRepository.loadPlants().groupBy { it.potId }
-        val deviceLocation = runCatching { locationHelper.currentLocationOrNull() }.getOrNull()
+        // Der Gerätestandort (bis zu 6s GPS-/Netz-Wartezeit, siehe LocationHelper) wird nur
+        // abgefragt, wenn ihn mindestens ein Topf ohne eigene Koordinaten tatsächlich braucht -
+        // hat jeder Topf einen eigenen Standort eingetragen, entfällt die Wartezeit komplett.
+        val deviceLocation = if (pots.any { it.latitude == null || it.longitude == null }) {
+            runCatching { locationHelper.currentLocationOrNull() }.getOrNull()
+        } else {
+            null
+        }
         val now = System.currentTimeMillis()
 
+        // Parallel statt nacheinander - jeder Topf braucht mehrere Firestore-/Wetter-Abrufe,
+        // sequentiell summiert sich das spürbar auf, sobald mehr als ein Topf angelegt ist.
         val forecasts = pots.map { pot ->
-            forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now, schwelleAnteil, currentUid)
-        }
-        return forecasts.sortedWith(
+            async { forecastFor(pot, plantsByPot[pot.id].orEmpty(), deviceLocation, now, schwelleAnteil, currentUid) }
+        }.map { it.await() }
+
+        forecasts.sortedWith(
             compareBy(
                 { !it.hasLocation }, // Töpfe ohne bestimmbaren Standort ans Ende
                 { it.faelligAbEpochMillis ?: Long.MAX_VALUE },

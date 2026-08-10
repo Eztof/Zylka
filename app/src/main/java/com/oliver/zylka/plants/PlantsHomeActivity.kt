@@ -15,9 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.AuthRepository
@@ -26,7 +24,6 @@ import com.oliver.zylka.data.plants.PlantPrefs
 import com.oliver.zylka.data.plants.PlantWaterCalculator
 import com.oliver.zylka.data.plants.PotForecast
 import com.oliver.zylka.data.plants.PotRepository
-import com.oliver.zylka.data.plants.SensorRepository
 import com.oliver.zylka.data.plants.WateringFeedback
 import com.oliver.zylka.data.plants.WateringRepository
 import com.oliver.zylka.databinding.ActivityPlantsHomeBinding
@@ -45,15 +42,11 @@ class PlantsHomeActivity : AppCompatActivity() {
     private val authRepository = AuthRepository()
     private val potRepository = PotRepository()
     private val wateringRepository = WateringRepository()
-    private val sensorRepository = SensorRepository()
     private val forecastRepository by lazy { PlantForecastRepository(applicationContext) }
     private val adapter = PotSummaryAdapter(
         onWatered = { forecast -> onWatered(forecast) },
         onOpenDetail = { forecast -> startActivity(PotDetailActivity.intent(this, forecast.pot.id)) },
     )
-    private val sensorPreviewAdapter = SensorAdapter { sensor ->
-        startActivity(SensorDetailActivity.intent(this, sensor.id))
-    }
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -76,20 +69,6 @@ class PlantsHomeActivity : AppCompatActivity() {
 
         binding.recyclerPots.layoutManager = LinearLayoutManager(this)
         binding.recyclerPots.adapter = adapter
-
-        binding.recyclerSensorsPreview.layoutManager = LinearLayoutManager(this)
-        binding.recyclerSensorsPreview.adapter = sensorPreviewAdapter
-        binding.cardSensors.setOnClickListener { startActivity(SensorsActivity.intent(this)) }
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sensorRepository.observeSensors().collect { sensors ->
-                    val sorted = sensors.sortedBy { it.name.lowercase() }
-                    sensorPreviewAdapter.submitList(sorted.take(SENSOR_PREVIEW_COUNT))
-                    binding.textSensorsEmpty.isVisible = sorted.isEmpty()
-                    binding.recyclerSensorsPreview.isVisible = sorted.isNotEmpty()
-                }
-            }
-        }
 
         binding.switchReminder.setOnCheckedChangeListener(null)
         binding.switchReminder.isChecked = prefs.reminderEnabled
@@ -139,7 +118,10 @@ class PlantsHomeActivity : AppCompatActivity() {
             binding.progressLoading.isVisible = false
             binding.textEmpty.isVisible = forecasts.isEmpty()
             adapter.submitList(forecasts)
-            rescheduleAlarm()
+            // Nutzt die gerade berechnete Liste direkt weiter, statt sie für den Alarm über
+            // PlantAlarmScheduler.rescheduleNext() ein zweites Mal zu berechnen (doppelter
+            // Wetterabruf/Standortabfrage/Firestore-Zugriff bei jedem Öffnen dieses Screens).
+            PlantAlarmScheduler.scheduleFor(applicationContext, forecasts)
         }
     }
 
@@ -210,9 +192,5 @@ class PlantsHomeActivity : AppCompatActivity() {
 
     private fun rescheduleAlarm() {
         lifecycleScope.launch { PlantAlarmScheduler.rescheduleNext(applicationContext) }
-    }
-
-    companion object {
-        private const val SENSOR_PREVIEW_COUNT = 3
     }
 }

@@ -255,12 +255,14 @@ selbst nach.
   simulierte Vorratskurve als Canvas-Custom-View (`PotWaterLevelChartView`,
   Vorbild `KennzeichenMapView`).
 - **Temperatursensoren** (`SensorsActivity`, eigene Kachel auf der
-  App-Startseite `MainActivity` sowie als Vorschau-Kachel in
-  `PlantsHomeActivity`): Liste aller angelegten TP357-Sensoren mit letztem
-  Messwert, durchsuchbar. `SensorEditActivity` legt Sensoren an/benennt sie
-  um (per Hand oder über eine Bluetooth-Umgebungssuche),
+  App-Startseite `MainActivity`): Liste aller angelegten TP357-Sensoren mit
+  letztem Messwert, durchsuchbar. `SensorEditActivity` legt Sensoren an/
+  benennt sie um (per Hand oder über eine Bluetooth-Umgebungssuche),
   `SensorDetailActivity` zeigt den aktuellen Messwert, pullt per Knopfdruck
-  eine neue Messung und listet die Chronik.
+  eine neue Messung und zeigt die Zeitraum-Charts. Auf der Pflanzenseite
+  selbst werden Sensoren nicht mehr zusätzlich aufgelistet (dafür gibt es
+  die eigene Sensoren-Seite) - nur die zugeordneten TP357-Messwerte fließen
+  weiterhin in die Verdunstungsberechnung ein.
 
 ### Datenmodell (Firestore, live synchronisiert)
 
@@ -395,6 +397,18 @@ Antwort wird in Firestore zwischengespeichert (`weather_cache/{uid}`,
 höchstens ein Abruf alle 3 Stunden je Standort); schlägt ein Abruf fehl,
 rechnet die App mit dem letzten Cache-Stand weiter und weist in der
 Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
+
+⚠️ **Ladezeit-Fix:** `PlantForecastRepository.computeForecasts` berechnete
+Töpfe ursprünglich nacheinander statt parallel und fragte immer den
+Gerätestandort ab (`LocationHelper`, bis zu 6s GPS-/Netz-Wartezeit) - auch
+wenn jeder Topf bereits eigene Koordinaten hatte. Zusätzlich berechnete
+`PlantAlarmScheduler.rescheduleNext` nach jedem Laden der Startseite die
+komplette Prognose ein zweites Mal nur für den Alarm. Alle drei behoben:
+Töpfe werden parallel berechnet (`async`/`awaitAll`), der Gerätestandort nur
+noch abgefragt, wenn ihn mindestens ein Topf tatsächlich braucht, und
+`PlantsHomeActivity` reicht die bereits berechnete Liste über
+`PlantAlarmScheduler.scheduleFor(...)` direkt weiter statt sie erneut
+berechnen zu lassen.
 
 Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`).
 
@@ -632,15 +646,16 @@ Werts.
 
 ### UI
 
-Prognose-Karte oben ("Nächste Periode voraussichtlich ab ... (± X Tage), ca.
-Y Tage"), darunter ein Monats-Grid (`RecyclerView` + `GridLayoutManager`,
-sieben Spalten - bewusst keine neue Canvas-View, da Tap-Hit-Testing für eine
-Canvas-Fläche selbst gebaut werden müsste, während `RecyclerView` das
-kostenlos mitbringt). Tage mit echtem Eintrag sind gefüllt eingefärbt (Alpha
-proportional zur Intensität), Tage einer Prognose-Periode ohne echten
-Eintrag nur umrandet - ein echter Eintrag hat immer Vorrang, eine Prognose
-ist nie mit echten Daten verwechselbar. Antippen eines beliebigen Tages
-(Vergangenheit wie Zukunft) öffnet den Editor mit einem `Slider` (0-10).
+Bewusst textarm: nur Monats-Navigation, Wochentags-Kopfzeile und das
+Monats-Grid selbst (`RecyclerView` + `GridLayoutManager`, sieben Spalten -
+keine neue Canvas-View, da Tap-Hit-Testing für eine Canvas-Fläche selbst
+gebaut werden müsste, während `RecyclerView` das kostenlos mitbringt), kein
+zusätzlicher Prognose- oder Hinweistext. Tage mit echtem Eintrag sind gefüllt
+eingefärbt (Alpha proportional zur Intensität), Tage einer Prognose-Periode
+ohne echten Eintrag nur umrandet - ein echter Eintrag hat immer Vorrang, eine
+Prognose ist nie mit echten Daten verwechselbar; das ist die einzige
+Prognose-Darstellung. Antippen eines beliebigen Tages (Vergangenheit wie
+Zukunft) öffnet den Editor mit einem `Slider` (0-10).
 
 ### Grenzen des Modells
 
