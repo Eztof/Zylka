@@ -360,8 +360,17 @@ class SensorBleScanner(private val context: Context) {
      * (ursprünglich als Byte-Länge der Gesamtantwort interpretiert, was sich als falsch erwiesen
      * hat) und werden nur noch als Teil des 7-Byte-Kopfs übersprungen, nicht mehr ausgewertet.
      *
-     * @return true, wenn dieses Paket das Rahmenende (`66 66`) enthielt - [readings] ist dann
-     * vollständig.
+     * **An einer dritten echten Aufnahme ergänzt:** Ein `66 66`-Rahmenende kommt nicht immer vor
+     * - bei einer kurzen Historie (hier 58 Datensätze) hörte das Gerät nach dem letzten Paket
+     * wortlos auf und sendete stattdessen wieder normale Live-Notifications im
+     * `parseGattNotification`-Format (`C2 00 00 …`, 7 Byte). Ein solches Paket, das eintrifft,
+     * nachdem der Rahmen bereits begonnen hat, wird deshalb ebenfalls als Rahmenende gewertet
+     * (statt fälschlich als weitere 3-Byte-Datensätze decodiert zu werden) - das Gerät ist damit
+     * erkennbar zurück im Live-Modus. Beide Enderkennungen (`66 66` und Live-Paket) gelten
+     * gleichberechtigt nebeneinander.
+     *
+     * @return true, wenn dieses Paket das Rahmenende markierte (`66 66` oder ein
+     * dazwischenfunkendes Live-Paket) - [readings] ist dann vollständig.
      */
     private fun HistoryAssembly.consumeChunk(chunk: ByteArray): Boolean {
         var body = chunk
@@ -372,6 +381,8 @@ class SensorBleScanner(private val context: Context) {
             }
             body = body.copyOfRange(7, body.size)
             frameStarted = true
+        } else if (isLiveNotificationShaped(body)) {
+            return true // Gerät ist bereits zurück im Live-Modus - siehe Doc-Kommentar oben.
         }
         var isLast = false
         if (body.size >= 2 && body[body.size - 2] == 0x66.toByte() && body[body.size - 1] == 0x66.toByte()) {
@@ -393,6 +404,12 @@ class SensorBleScanner(private val context: Context) {
         }
         return isLast
     }
+
+    /** Erkennt das 7-Byte-Live-Notification-Format aus [parseGattNotification] (`C2 00 00 …`)
+     * an den ersten drei Bytes und der Länge - genutzt in [consumeChunk], um ein wortloses Ende
+     * der Historien-Antwort (kein `66 66`) von einem dazwischenfunkenden Live-Wert zu erkennen. */
+    private fun isLiveNotificationShaped(chunk: ByteArray): Boolean =
+        chunk.size == 7 && chunk[0] == 0xC2.toByte() && chunk[1] == 0x00.toByte() && chunk[2] == 0x00.toByte()
 
     /**
      * Rohdaten-Variante von [readSensorGatt] für die Diagnose (`SensorDiagnosticActivity`):

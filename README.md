@@ -443,12 +443,20 @@ schickt die vom Protokoll vorgesehene Kommandosequenz (Session-Init,
 Offset, Datenanfrage) und setzt die über mehrere Notifications gestückelte
 Antwort wieder zu einer Liste von Temperatur-/Feuchte-Tripeln zusammen.
 
-⚠️ **An zwei vollständigen echten Aufnahmen korrigiert:**
+⚠️ **An drei vollständigen echten Aufnahmen korrigiert:**
 - Der Rahmenabschluss wird **nicht** aus dem 3-Byte-Feld nach `cc cc 01`
   berechnet (die ursprüngliche, KI-zusammengefasste Protokollbeschreibung
   interpretierte es als Byte-Länge der Antwort - an echten TP357S-Aufnahmen
   nachweislich falsch, die tatsächliche Antwort war beide Male deutlich
-  kürzer). Stattdessen wird das literale `66 66`-Rahmenende erkannt.
+  kürzer). Stattdessen wird das literale `66 66`-Rahmenende erkannt - **oder**,
+  falls das ausbleibt, ein dazwischenfunkendes Live-Paket im normalen
+  `parseGattNotification`-Format (`C2 00 00 …`, 7 Byte): bei einer dritten
+  Aufnahme (58 Datensätze, glatt von 27,8 °C auf 25,6 °C fallend, 0 von 58
+  unplausibel) hörte das TP357S nach dem letzten Datenpaket wortlos auf und
+  sendete direkt wieder normale Live-Notifications, ganz ohne `66 66`. Ein
+  solches Paket signalisiert `SensorBleScanner.consumeChunk` deshalb
+  ebenfalls das Rahmenende, statt (fälschlich) als weitere Datensätze
+  decodiert zu werden.
 - Das TP357S richtet die 3-Byte-Datensätze (Temperatur + Feuchte) offenbar
   **pro BLE-Notification-Paket neu aus**, statt den Byte-Strom nahtlos über
   Paketgrenzen hinweg fortzusetzen: 1-2 Restbytes am Ende eines Pakets, die
