@@ -385,6 +385,27 @@ rechnet die App mit dem letzten Cache-Stand weiter und weist in der
 Oberfläche darauf hin ("Wetterdaten evtl. veraltet").
 
 Optional zusätzlich: **TP357-Bluetooth-Sensoren** (`SensorBleScanner`).
+
+**UI (`SensorsActivity`/`SensorDetailActivity`)** ist an die Sensor-Karte/
+-Detailseite der ThermoPro-App angelehnt, in unserem Farbschema statt deren
+Regenbogen-Palette:
+- **Komfort-Gauge** (`ComfortGaugeView`): horizontaler Gradient-Balken
+  (Trocken → Komfort → Feucht, `brand_error` → `brand_primary` →
+  `brand_tertiary`) mit einem Knob an der aktuellen Luftfeuchte-Position -
+  sowohl auf der Sensor-Karte als auch im Detail-Kopf.
+- **Drei-Werte-Zeile**: Temperatur, Wärme-Index, Luftfeuchtigkeit.
+  Wärme-Index ist die "gefühlte Temperatur" - reine Rechenlogik ohne
+  Android-Abhängigkeiten in `HeatIndexCalculator` (NOAA/Rothfusz-Näherung,
+  unterhalb von ≈27 °C nicht mehr aussagekräftig, dort wird einfach die
+  Ist-Temperatur gezeigt).
+- **Temperatur-/Feuchte-Charts** (`SensorHistoryChartView`, Vorbild
+  `PotWaterLevelChartView` aus dem Gießplaner): gefüllte Kurve mit
+  Min-/Max-Markern direkt auf der Linie, gespeist aus `sensor_readings`
+  (Live-Pull, Hintergrund-Historienabgleich und "Verlauf laden" landen alle
+  in derselben Sammlung). Eine Zeitraum-Auswahl (Stunde/Tag/Woche/Monat/
+  Jahr) filtert beide Charts clientseitig auf die zuletzt geladenen
+  Messwerte - ohne eigene Firestore-Abfrage je Zeitraum.
+
 Manche TP357-Varianten senden Temperatur/Feuchte fortlaufend im BLE-
 Advertisement (rein passiver Scan, keine Verbindung nötig); andere - wie
 sich in der Praxis gezeigt hat - senden **nur über eine aktive
@@ -762,7 +783,8 @@ app/src/main/java/com/oliver/zylka/
 │       ├── SensorBleScanner.kt       # TP357 lesen: GATT zuerst, Advertisement-Scan als Fallback (best effort, siehe README oben)
 │       ├── SensorLiveCache.kt        # Prozessweiter Speicher-Cache der zuletzt gelauschten Live-Werte
 │       ├── SensorHistorySync.kt      # Gerätehistorie höchstens 1×/Tag mit Firestore abgleichen
-│       └── SensorHistorySyncPrefs.kt # Letzter Sync-Zeitpunkt je Sensor (SharedPreferences)
+│       ├── SensorHistorySyncPrefs.kt # Letzter Sync-Zeitpunkt je Sensor (SharedPreferences)
+│       └── HeatIndexCalculator.kt    # Reine Rechenlogik: gefühlte Temperatur (NOAA/Rothfusz)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -796,10 +818,14 @@ app/src/main/java/com/oliver/zylka/
 │   ├── PlantBootReceiver.kt         # Baut die Alarmkette nach Geräte-Neustart neu auf
 │   ├── PlantNotifier.kt             # Notification-Channel + Benachrichtigung
 │   ├── SensorsActivity.kt           # Sensorliste (durchsuchbar), verlinkt von der Startseite
+│   ├── SensorAdapter.kt             # RecyclerView-Adapter: Temp/Wärme-Index/Feuchte + Gauge
 │   ├── SensorEditActivity.kt        # Sensor anlegen/bearbeiten, BLE-Umgebungssuche
-│   ├── SensorDetailActivity.kt      # Aktueller Messwert + Verlauf, Button "Jetzt abrufen"
+│   ├── SensorDetailActivity.kt      # Status-Kopf, Zeitraum-Charts, Verlauf, "Jetzt abrufen"
+│   ├── SensorReadingAdapter.kt      # RecyclerView-Adapter für die rohe Messwerteliste
+│   ├── ComfortGaugeView.kt          # Canvas-Custom-View: Feuchte-Gradient-Gauge mit Knob
+│   ├── SensorHistoryChartView.kt    # Canvas-Custom-View: Temperatur-/Feuchte-Kurve mit Min/Max
 │   ├── SensorDiagnosticActivity.kt  # Rohdaten-Log aller BLE-Pakete, Filter, Export
-│   └── SensorAdapter.kt / SensorReadingAdapter.kt / BleDiagnosticAdapter.kt  # RecyclerView-Adapter
+│   └── BleDiagnosticAdapter.kt      # RecyclerView-Adapter für das Rohdaten-Log
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```

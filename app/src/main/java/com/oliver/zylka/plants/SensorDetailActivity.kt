@@ -9,6 +9,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,10 +17,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.AuthRepository
+import com.oliver.zylka.data.plants.HeatIndexCalculator
 import com.oliver.zylka.data.plants.HistoricalPoint
 import com.oliver.zylka.data.plants.Sensor
 import com.oliver.zylka.data.plants.SensorBleScanner
 import com.oliver.zylka.data.plants.SensorLiveCache
+import com.oliver.zylka.data.plants.SensorReading
 import com.oliver.zylka.data.plants.SensorReadingRepository
 import com.oliver.zylka.data.plants.SensorRepository
 import com.oliver.zylka.databinding.ActivitySensorDetailBinding
@@ -32,7 +35,9 @@ import java.util.Locale
 /** Aktueller Messwert + Verlauf eines Sensors. Lauscht dauerhaft (solange sichtbar) per BLE auf
  * Live-Werte (siehe [SensorLiveCache]) - "Jetzt abrufen" bleibt als gezielter Einzel-Pull
  * daneben bestehen (z. B. um sofort einen ersten Wert zu erzwingen). "Verlauf laden" importiert
- * die im Gerät gespeicherte Historie auf einmal (siehe [SensorBleScanner]). */
+ * die im Gerät gespeicherte Historie auf einmal (siehe [SensorBleScanner]). Kopf- und
+ * Chart-Layout sind an die ThermoPro-App angelehnt (Komfort-Gauge, Temperatur-/Feuchte-Kurve),
+ * hier in unserem Farbschema - siehe [ComfortGaugeView]/[SensorHistoryChartView]. */
 class SensorDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySensorDetailBinding
@@ -47,6 +52,8 @@ class SensorDetailActivity : AppCompatActivity() {
     private var currentSensor = Sensor()
     private var pendingBleAction: (() -> Unit)? = null
     private var liveListenerStarted = false
+    private var allReadings: List<SensorReading> = emptyList()
+    private var selectedRange = TimeRange.DAY
 
     private val requestBlePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -54,6 +61,16 @@ class SensorDetailActivity : AppCompatActivity() {
         val action = pendingBleAction
         pendingBleAction = null
         if (results.values.all { it }) action?.invoke()
+    }
+
+    /** Zeiträume für die Verlaufs-Charts, an die ThermoPro-App angelehnt ("Hour/Day/Week/Month/
+     * Year") - filtert einfach [allReadings] auf die letzten [rangeMillis] Millisekunden. */
+    private enum class TimeRange(val rangeMillis: Long) {
+        HOUR(60 * 60 * 1000L),
+        DAY(24 * 60 * 60 * 1000L),
+        WEEK(7L * 24 * 60 * 60 * 1000L),
+        MONTH(30L * 24 * 60 * 60 * 1000L),
+        YEAR(365L * 24 * 60 * 60 * 1000L),
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +86,24 @@ class SensorDetailActivity : AppCompatActivity() {
         binding.recyclerHistory.adapter = historyAdapter
         binding.buttonPull.setOnClickListener { ensureBlePermissions { pullReading() } }
         binding.buttonLoadHistory.setOnClickListener { ensureBlePermissions { pullHistory() } }
+        binding.chartTemperature.setColors(
+            lineColor = ContextCompat.getColor(this, R.color.brand_error),
+            fillColor = ContextCompat.getColor(this, R.color.brand_error_container),
+            markerColor = ContextCompat.getColor(this, R.color.brand_error),
+            axisLabelColor = ContextCompat.getColor(this, R.color.brand_outline),
+        )
+        binding.chartHumidity.setColors(
+            lineColor = ContextCompat.getColor(this, R.color.brand_tertiary),
+            fillColor = ContextCompat.getColor(this, R.color.brand_tertiary_container),
+            markerColor = ContextCompat.getColor(this, R.color.brand_tertiary),
+            axisLabelColor = ContextCompat.getColor(this, R.color.brand_outline),
+        )
+        binding.toggleRange.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                selectedRange = rangeFor(checkedId)
+                renderCharts()
+            }
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -87,28 +122,70 @@ class SensorDetailActivity : AppCompatActivity() {
                 }
                 launch {
                     sensorReadingRepository.observeReadings(sensorId).collect { readings ->
+                        allReadings = readings
                         historyAdapter.submitList(readings)
                         binding.textHistoryEmpty.isVisible = readings.isEmpty()
+                        renderCharts()
                     }
                 }
             }
         }
     }
 
+    private fun rangeFor(checkedId: Int): TimeRange = when (checkedId) {
+        R.id.button_range_hour -> TimeRange.HOUR
+        R.id.button_range_week -> TimeRange.WEEK
+        R.id.button_range_month -> TimeRange.MONTH
+        R.id.button_range_year -> TimeRange.YEAR
+        else -> TimeRange.DAY
+    }
+
+    /** Füllt beide Charts mit den auf [selectedRange] gefilterten Messwerten - mit weniger als
+     * zwei Punkten zeichnet [SensorHistoryChartView] nichts, dann zeigen wir stattdessen den
+     * Leer-Hinweis. */
+    private fun renderCharts() {
+        val cutoffMillis = System.currentTimeMillis() - selectedRange.rangeMillis
+        val windowed = allReadings
+            .filter { (it.measuredAt?.time ?: 0L) >= cutoffMillis }
+            .sortedBy { it.measuredAt?.time ?: 0L }
+
+        val temperaturePoints = windowed.map { (it.measuredAt?.time ?: 0L) to it.temperatureC }
+        binding.chartTemperature.setData(temperaturePoints, " °C")
+        val hasTemperature = temperaturePoints.size >= 2
+        binding.textTemperatureChartEmpty.isVisible = !hasTemperature
+        binding.textTemperatureRange.isVisible = hasTemperature
+        if (hasTemperature) {
+            binding.textTemperatureRange.text = getString(
+                R.string.sensor_chart_range_temperature,
+                temperaturePoints.maxOf { it.second },
+                temperaturePoints.minOf { it.second },
+            )
+        }
+
+        val humidityPoints = windowed.map { (it.measuredAt?.time ?: 0L) to it.humidityPercent }
+        binding.chartHumidity.setData(humidityPoints, " %")
+        val hasHumidity = humidityPoints.size >= 2
+        binding.textHumidityChartEmpty.isVisible = !hasHumidity
+        binding.textHumidityRange.isVisible = hasHumidity
+        if (hasHumidity) {
+            binding.textHumidityRange.text = getString(
+                R.string.sensor_chart_range_humidity,
+                humidityPoints.maxOf { it.second },
+                humidityPoints.minOf { it.second },
+            )
+        }
+    }
+
     /** Bleibt per BLE mit dem Sensor verbunden, solange der Screen sichtbar ist (endet
-     * automatisch mit dem umgebenden [repeatOnLifecycle]-Block), und zeigt jeden empfangenen
-     * Live-Wert sofort an - ohne für jede Anzeige extra "Jetzt abrufen" drücken zu müssen. Ein
-     * Verbindungsfehler wird verschluckt; beim nächsten Sichtbarwerden des Screens versucht es
-     * [liveListenerStarted]-gesteuert automatisch erneut. */
+     * automatisch mit dem umgebenden [repeatOnLifecycle]-Block), und aktualisiert den Kopf bei
+     * jedem empfangenen Live-Wert sofort - ohne für jede Anzeige extra "Jetzt abrufen" drücken zu
+     * müssen. Ein Verbindungsfehler wird verschluckt; beim nächsten Sichtbarwerden des Screens
+     * versucht es [liveListenerStarted]-gesteuert automatisch erneut. */
     private suspend fun listenForLiveReadings(macAddress: String) {
         try {
             bleScanner.observeLiveReadings(macAddress).collect { reading ->
                 SensorLiveCache.update(macAddress, reading)
-                binding.textCurrentReading.text = getString(
-                    R.string.sensor_reading_summary_live,
-                    reading.temperatureC,
-                    reading.humidityPercent,
-                )
+                updateHeader(currentSensor)
             }
         } catch (error: Exception) {
             liveListenerStarted = false
@@ -141,18 +218,34 @@ class SensorDetailActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    /** Zeigt bevorzugt den per BLE dauerhaft gelauschten Live-Wert ([SensorLiveCache]) - erst
+     * wenn (noch) keiner da ist, den zuletzt in Firestore gespeicherten. Wird sowohl beim Laden
+     * des Sensors als auch bei jedem neuen Live-Wert erneut aufgerufen. */
     private fun updateHeader(sensor: Sensor) {
         binding.textMac.text = sensor.macAddress
         val live = SensorLiveCache.get(sensor.macAddress)
-        val temperature = sensor.lastTemperatureC
-        val humidity = sensor.lastHumidityPercent
-        binding.textCurrentReading.text = when {
-            live != null -> getString(R.string.sensor_reading_summary_live, live.temperatureC, live.humidityPercent)
-            temperature != null && humidity != null -> {
-                val zeit = sensor.lastMeasuredAt?.let { timeFormat.format(it) }.orEmpty()
-                getString(R.string.sensor_reading_summary, temperature, humidity, zeit)
-            }
+        val temperature = live?.temperatureC ?: sensor.lastTemperatureC
+        val humidity = live?.humidityPercent ?: sensor.lastHumidityPercent
+
+        binding.textStatus.text = when {
+            live != null -> getString(R.string.sensor_status_live)
+            sensor.lastMeasuredAt != null -> timeFormat.format(sensor.lastMeasuredAt)
             else -> getString(R.string.sensor_no_reading)
+        }
+
+        if (temperature != null && humidity != null) {
+            binding.textTemperature.text = getString(R.string.sensor_value_temperature, temperature)
+            binding.textHeatIndex.text = getString(
+                R.string.sensor_value_temperature,
+                HeatIndexCalculator.heatIndexCelsius(temperature, humidity),
+            )
+            binding.textHumidity.text = getString(R.string.sensor_value_humidity, humidity)
+            binding.gaugeHumidity.setHumidity(humidity)
+        } else {
+            binding.textTemperature.text = getString(R.string.sensor_value_placeholder)
+            binding.textHeatIndex.text = getString(R.string.sensor_value_placeholder)
+            binding.textHumidity.text = getString(R.string.sensor_value_placeholder)
+            binding.gaugeHumidity.setHumidity(null)
         }
     }
 

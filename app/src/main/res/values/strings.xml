@@ -198,8 +198,6 @@
     <string name="sensors_search_hint">Suchen</string>
     <string name="sensors_empty_hint">Noch keine Sensoren.</string>
     <string name="sensors_action_add">Sensor hinzufügen</string>
-    <string name="sensor_reading_summary">%1$.1f °C · %2$.0f %% · %3$s</string>
-    <string name="sensor_reading_summary_live">%1$.1f °C · %2$.0f %% · live</string>
     <string name="sensor_no_reading">Noch keine Messung</string>
     <string name="sensor_edit_title_new">Neuer Sensor</string>
     <string name="sensor_edit_title_edit">Sensor bearbeiten</string>
@@ -216,9 +214,32 @@
     <string name="sensor_detail_action_diagnose">Rohdaten-Diagnose</string>
     <string name="sensor_detail_action_load_history">Verlauf laden</string>
     <string name="sensor_detail_load_history_caption">Lädt die im Sensor gespeicherte Historie. Zeitpunkte sind geschätzt (Aufnahme-Abstand unbekannt) - mehrfaches Laden kann Werte doppelt anlegen.</string>
+    <string name="sensor_detail_label_range">Zeitraum</string>
     <string name="sensor_detail_label_history">Verlauf</string>
     <string name="sensor_detail_history_empty">Noch keine Messwerte.</string>
     <string name="sensor_reading_values">%1$.1f °C · %2$.0f %%</string>
+    <!-- Karten-/Detail-Layout an die ThermoPro-App angelehnt (Komfort-Gauge, Temperatur-/
+         Wärme-Index-/Feuchte-Statistik) - siehe ComfortGaugeView/SensorHistoryChartView. -->
+    <string name="sensor_stat_temperature">Temperatur</string>
+    <string name="sensor_stat_heat_index">Wärme-Index</string>
+    <string name="sensor_stat_humidity">Luftfeuchtigkeit</string>
+    <string name="sensor_value_temperature">%1$.1f °C</string>
+    <string name="sensor_value_humidity">%1$.0f %%</string>
+    <string name="sensor_value_placeholder">–</string>
+    <string name="sensor_status_live">Live</string>
+    <string name="sensor_gauge_dry">Trocken</string>
+    <string name="sensor_gauge_comfort">Komfort</string>
+    <string name="sensor_gauge_humid">Feucht</string>
+    <string name="sensor_range_hour">Stunde</string>
+    <string name="sensor_range_day">Tag</string>
+    <string name="sensor_range_week">Woche</string>
+    <string name="sensor_range_month">Monat</string>
+    <string name="sensor_range_year">Jahr</string>
+    <string name="sensor_chart_title_temperature">Temperatur (°C)</string>
+    <string name="sensor_chart_title_humidity">Luftfeuchtigkeit (%)</string>
+    <string name="sensor_chart_range_temperature">Max.: %1$.1f °C · Min.: %2$.1f °C</string>
+    <string name="sensor_chart_range_humidity">Max.: %1$.0f %% · Min.: %2$.0f %%</string>
+    <string name="sensor_chart_empty">Noch keine Messwerte für diesen Zeitraum.</string>
     <string name="sensor_pull_failed">Kein Messwert empfangen</string>
     <string name="sensor_pull_success">Messwert aktualisiert</string>
     <string name="sensor_history_pull_failed">Keine Historie empfangen</string>

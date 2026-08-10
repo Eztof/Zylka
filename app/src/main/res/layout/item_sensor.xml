@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/Widget.Zylka.Card.Compact"
     android:layout_width="match_parent"
@@ -12,23 +13,141 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/text_sensor_name"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleSmall"
-            android:textColor="@color/brand_on_surface"
-            tools:text="Wohnzimmer" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/text_sensor_reading"
+            <TextView
+                android:id="@+id/text_sensor_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="@color/brand_on_surface"
+                tools:text="Wohnzimmer" />
+
+            <TextView
+                android:id="@+id/text_sensor_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="@color/brand_outline"
+                tools:text="vor 2 Std." />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="@color/brand_on_surface_variant"
-            tools:text="21,4 °C · 48 % · vor 2 Std." />
+            android:layout_marginTop="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_thermometer"
+                    app:tint="@color/brand_error" />
+
+                <TextView
+                    android:id="@+id/text_temperature"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="@color/brand_on_surface"
+                    tools:text="21,4 °C" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sensor_stat_temperature"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="@color/brand_on_surface_variant" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="40dp"
+                android:background="@color/brand_outline_variant" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text_heat_index"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="@color/brand_secondary"
+                    tools:text="21,0 °C" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sensor_stat_heat_index"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="@color/brand_on_surface_variant" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="40dp"
+                android:background="@color/brand_outline_variant" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_water_drop"
+                    app:tint="@color/brand_tertiary" />
+
+                <TextView
+                    android:id="@+id/text_humidity"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="@color/brand_on_surface"
+                    tools:text="48 %" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sensor_stat_humidity"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="@color/brand_on_surface_variant" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.oliver.zylka.plants.ComfortGaugeView
+            android:id="@+id/gauge_humidity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
