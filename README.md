@@ -476,6 +476,39 @@ Antwort wieder zu einer Liste von Temperatur-/Feuchte-Tripeln zusammen.
   jeweils neu berechneten (leicht verschobenen) Zeitstempeln erneut an -
   es gibt keine Duplikaterkennung.
 
+**Live-Wert-Cache statt Einzel-Pull** (`SensorLiveCache`): das TP357S
+verhält sich beim aktuellen Wert wie ein reiner Funk-Sender - es schickt
+ohne Aufforderung fortlaufend Notifications mit dem aktuellen Messwert,
+das Handy muss nur zuhören. `SensorsActivity` und `SensorDetailActivity`
+bauen deshalb, solange der jeweilige Screen sichtbar ist
+(`repeatOnLifecycle(STARTED)`), über `SensorBleScanner.observeLiveReadings`
+für jeden bekannten Sensor eine dauerhafte GATT-Lauschverbindung auf statt
+bei jedem Öffnen neu zu verbinden. Jeder empfangene Wert landet sofort im
+prozessweiten, rein speicherinternen `SensorLiveCache`
+(`StateFlow<Map<MAC, BleReading>>`) und wird von dort angezeigt - auch wer
+nur ganz kurz auf „Sensoren" tippt, sieht ohne Wartezeit den zuletzt
+gefunkten Wert. Der Cache wird **nicht** automatisch nach Firestore
+geschrieben (das bliebe „Jetzt abrufen" vorbehalten, das weiterhin gezielt
+einen Wert abruft und dabei auch in Firestore ablegt) - so entsteht kein
+Schreib-Spam allein durchs Zuhören. Bricht eine Lauschverbindung ab (Gerät
+außer Reichweite o. Ä.), wird sie verschluckt und erst beim nächsten
+Sichtbarwerden des Screens automatisch neu versucht.
+
+**Historie: einmal täglich im Hintergrund statt bei jedem Öffnen**
+(`SensorHistorySync`): Wird bei jedem App-Start (`MainActivity.onCreate`)
+angestoßen, lädt aber je Sensor höchstens alle 24 Stunden tatsächlich die
+Gerätehistorie per GATT (`SensorHistorySyncPrefs` merkt sich den letzten
+Sync-Zeitpunkt pro Sensor in `SharedPreferences`). Beim Abgleich wird der
+neueste bereits in Firestore gespeicherte Messwert je Sensor ermittelt
+(`SensorReadingRepository.loadReadings`) und nur die aus der Gerätehistorie
+rekonstruierten Datensätze angelegt, die zeitlich danach liegen - ein
+erneuter Sync am selben Tag findet dadurch in aller Regel keine neuen
+Datensätze und schreibt nichts. Das läuft komplett still im Hintergrund
+(`lifecycleScope.launch` + `runCatching`, wie `checkForUpdate`): kein
+Toast, kein Ladebalken, Fehler (Bluetooth aus, Sensor nicht erreichbar,
+fehlende Berechtigungen) werden pro Sensor verschluckt, ohne die übrigen
+Sensoren oder den App-Start zu blockieren.
+
 **Kein Gerät gefunden?** `BLUETOOTH_SCAN` ist im Manifest mit
 `android:usesPermissionFlags="neverForLocation"` deklariert - ohne dieses
 Flag verlangt Android ab API 31 zusätzlich `ACCESS_FINE_LOCATION` und
@@ -718,7 +751,10 @@ app/src/main/java/com/oliver/zylka/
 │       ├── PlantPrefs.kt             # Erinnerung an/aus + Feuchte-Schwellenwert (SharedPreferences)
 │       ├── Sensor.kt / SensorReading.kt      # TP357-Firestore-Datenklassen
 │       ├── SensorRepository.kt / SensorReadingRepository.kt
-│       └── SensorBleScanner.kt       # TP357 lesen: GATT zuerst, Advertisement-Scan als Fallback (best effort, siehe README oben)
+│       ├── SensorBleScanner.kt       # TP357 lesen: GATT zuerst, Advertisement-Scan als Fallback (best effort, siehe README oben)
+│       ├── SensorLiveCache.kt        # Prozessweiter Speicher-Cache der zuletzt gelauschten Live-Werte
+│       ├── SensorHistorySync.kt      # Gerätehistorie höchstens 1×/Tag mit Firestore abgleichen
+│       └── SensorHistorySyncPrefs.kt # Letzter Sync-Zeitpunkt je Sensor (SharedPreferences)
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt

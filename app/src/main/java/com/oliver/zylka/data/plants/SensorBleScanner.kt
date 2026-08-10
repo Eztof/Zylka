@@ -151,6 +151,55 @@ class SensorBleScanner(private val context: Context) {
     }
 
     /**
+     * Bleibt dauerhaft per GATT mit einem Sensor verbunden und liefert **jeden** per
+     * [parseGattNotification] erkannten Live-Wert, solange der Flow gesammelt wird - anders als
+     * [readSensor] (verbindet, wartet auf genau einen Wert, trennt sofort wieder). Gedacht für
+     * eine dauerhafte Anzeige (siehe `SensorLiveCache`): eine offene Verbindung erspart bei jedem
+     * kurzen Blick auf den Bildschirm einen neuen Verbindungsaufbau, und das Gerät schickt seinen
+     * aktuellen Wert ohnehin von selbst alle paar Sekunden bis Minuten. Trennt beim Verlassen
+     * automatisch wieder.
+     */
+    @SuppressLint("MissingPermission")
+    fun observeLiveReadings(macAddress: String): Flow<BleReading> = callbackFlow {
+        if (!hasPermissions()) {
+            close(IllegalStateException("Bluetooth-Berechtigungen fehlen"))
+            return@callbackFlow
+        }
+        val adapter = bluetoothAdapter?.takeIf { it.isEnabled }
+        if (adapter == null) {
+            close(IllegalStateException("Bluetooth ist ausgeschaltet"))
+            return@callbackFlow
+        }
+        val device = adapter.getRemoteDevice(macAddress)
+        var gatt: BluetoothGatt? = null
+        val callback = object : BluetoothGattCallback() {
+            override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> g.discoverServices()
+                    BluetoothProfile.STATE_DISCONNECTED -> close(IllegalStateException("GATT-Verbindung getrennt"))
+                }
+            }
+
+            override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+                if (status != BluetoothGatt.GATT_SUCCESS) {
+                    close(IllegalStateException("GATT-Service-Suche fehlgeschlagen (Code $status)"))
+                    return
+                }
+                subscribeToAllNotifyCharacteristics(g)
+            }
+
+            override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                parseGattNotification(value)?.let { trySend(it) }
+            }
+        }
+        gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE, BluetoothDevice.PHY_LE_1M_MASK)
+        awaitClose {
+            runCatching { gatt?.disconnect() }
+            runCatching { gatt?.close() }
+        }
+    }
+
+    /**
      * Lädt die im Gerät gespeicherte Messhistorie per GATT (reverse-engineertes Protokoll für
      * die TP357S-Variante, siehe github.com/giovannipizzi/pytp357s/blob/main/PROTOCOL.md - dort
      * dokumentiert an Service `...1910`/Write-Characteristic `...2b11`/Notify-Characteristic

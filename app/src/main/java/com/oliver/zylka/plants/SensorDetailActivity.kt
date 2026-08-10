@@ -19,6 +19,7 @@ import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.plants.HistoricalPoint
 import com.oliver.zylka.data.plants.Sensor
 import com.oliver.zylka.data.plants.SensorBleScanner
+import com.oliver.zylka.data.plants.SensorLiveCache
 import com.oliver.zylka.data.plants.SensorReadingRepository
 import com.oliver.zylka.data.plants.SensorRepository
 import com.oliver.zylka.databinding.ActivitySensorDetailBinding
@@ -28,9 +29,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Aktueller Messwert + Verlauf eines Sensors. "Jetzt abrufen" pullt per Bluetooth eine neue
- * Momentaufnahme, "Verlauf laden" importiert die im Gerät gespeicherte Historie auf einmal
- * (siehe [SensorBleScanner]). */
+/** Aktueller Messwert + Verlauf eines Sensors. Lauscht dauerhaft (solange sichtbar) per BLE auf
+ * Live-Werte (siehe [SensorLiveCache]) - "Jetzt abrufen" bleibt als gezielter Einzel-Pull
+ * daneben bestehen (z. B. um sofort einen ersten Wert zu erzwingen). "Verlauf laden" importiert
+ * die im Gerät gespeicherte Historie auf einmal (siehe [SensorBleScanner]). */
 class SensorDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySensorDetailBinding
@@ -44,6 +46,7 @@ class SensorDetailActivity : AppCompatActivity() {
     private lateinit var sensorId: String
     private var currentSensor = Sensor()
     private var pendingBleAction: (() -> Unit)? = null
+    private var liveListenerStarted = false
 
     private val requestBlePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -69,22 +72,46 @@ class SensorDetailActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sensorRepository.observeSensor(sensorId).collect { sensor ->
-                    if (sensor != null) {
-                        currentSensor = sensor
-                        title = sensor.name
-                        updateHeader(sensor)
+                launch {
+                    sensorRepository.observeSensor(sensorId).collect { sensor ->
+                        if (sensor != null) {
+                            currentSensor = sensor
+                            title = sensor.name
+                            updateHeader(sensor)
+                            if (!liveListenerStarted && sensor.macAddress.isNotBlank()) {
+                                liveListenerStarted = true
+                                launch { listenForLiveReadings(sensor.macAddress) }
+                            }
+                        }
+                    }
+                }
+                launch {
+                    sensorReadingRepository.observeReadings(sensorId).collect { readings ->
+                        historyAdapter.submitList(readings)
+                        binding.textHistoryEmpty.isVisible = readings.isEmpty()
                     }
                 }
             }
         }
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sensorReadingRepository.observeReadings(sensorId).collect { readings ->
-                    historyAdapter.submitList(readings)
-                    binding.textHistoryEmpty.isVisible = readings.isEmpty()
-                }
+    }
+
+    /** Bleibt per BLE mit dem Sensor verbunden, solange der Screen sichtbar ist (endet
+     * automatisch mit dem umgebenden [repeatOnLifecycle]-Block), und zeigt jeden empfangenen
+     * Live-Wert sofort an - ohne für jede Anzeige extra "Jetzt abrufen" drücken zu müssen. Ein
+     * Verbindungsfehler wird verschluckt; beim nächsten Sichtbarwerden des Screens versucht es
+     * [liveListenerStarted]-gesteuert automatisch erneut. */
+    private suspend fun listenForLiveReadings(macAddress: String) {
+        try {
+            bleScanner.observeLiveReadings(macAddress).collect { reading ->
+                SensorLiveCache.update(macAddress, reading)
+                binding.textCurrentReading.text = getString(
+                    R.string.sensor_reading_summary_live,
+                    reading.temperatureC,
+                    reading.humidityPercent,
+                )
             }
+        } catch (error: Exception) {
+            liveListenerStarted = false
         }
     }
 
@@ -116,13 +143,16 @@ class SensorDetailActivity : AppCompatActivity() {
 
     private fun updateHeader(sensor: Sensor) {
         binding.textMac.text = sensor.macAddress
+        val live = SensorLiveCache.get(sensor.macAddress)
         val temperature = sensor.lastTemperatureC
         val humidity = sensor.lastHumidityPercent
-        binding.textCurrentReading.text = if (temperature != null && humidity != null) {
-            val zeit = sensor.lastMeasuredAt?.let { timeFormat.format(it) }.orEmpty()
-            getString(R.string.sensor_reading_summary, temperature, humidity, zeit)
-        } else {
-            getString(R.string.sensor_no_reading)
+        binding.textCurrentReading.text = when {
+            live != null -> getString(R.string.sensor_reading_summary_live, live.temperatureC, live.humidityPercent)
+            temperature != null && humidity != null -> {
+                val zeit = sensor.lastMeasuredAt?.let { timeFormat.format(it) }.orEmpty()
+                getString(R.string.sensor_reading_summary, temperature, humidity, zeit)
+            }
+            else -> getString(R.string.sensor_no_reading)
         }
     }
 
@@ -183,7 +213,7 @@ class SensorDetailActivity : AppCompatActivity() {
             }
             if (history.isEmpty()) {
                 // Antwort kam vollständig an, aber kein einziger Datensatz war plausibel -
-                // anders als "keine Antwort", siehe SensorBleScanner.appendHistoryChunk.
+                // anders als "keine Antwort", siehe SensorBleScanner.HistoryAssembly.
                 Toast.makeText(this@SensorDetailActivity, R.string.sensor_history_pull_empty, Toast.LENGTH_SHORT).show()
                 return@launch
             }

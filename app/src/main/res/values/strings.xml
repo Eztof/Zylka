@@ -199,6 +199,7 @@
     <string name="sensors_empty_hint">Noch keine Sensoren.</string>
     <string name="sensors_action_add">Sensor hinzufügen</string>
     <string name="sensor_reading_summary">%1$.1f °C · %2$.0f %% · %3$s</string>
+    <string name="sensor_reading_summary_live">%1$.1f °C · %2$.0f %% · live</string>
     <string name="sensor_no_reading">Noch keine Messung</string>
     <string name="sensor_edit_title_new">Neuer Sensor</string>
     <string name="sensor_edit_title_edit">Sensor bearbeiten</string>

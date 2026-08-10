@@ -16,6 +16,7 @@ import com.oliver.zylka.auth.LoginActivity
 import com.oliver.zylka.data.AuthRepository
 import com.oliver.zylka.data.UpdateInfo
 import com.oliver.zylka.data.UpdateRepository
+import com.oliver.zylka.data.plants.SensorHistorySync
 import com.oliver.zylka.databinding.ActivityMainBinding
 import com.oliver.zylka.databinding.DialogUpdateProgressBinding
 import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkForUpdate()
+        syncSensorHistoryInBackground()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -103,6 +105,16 @@ class MainActivity : AppCompatActivity() {
                 // Update-Prüfung ist nicht kritisch für die App-Nutzung -
                 // im Fehlerfall (z. B. kein Netz) einfach ignorieren.
             }
+        }
+    }
+
+    /** Gleicht die Gerätehistorie aller Sensoren höchstens einmal pro Tag mit Firestore ab (siehe
+     * [SensorHistorySync]) - läuft still im Hintergrund, ohne den App-Start zu blockieren oder
+     * bei Fehlern (kein Bluetooth, Gerät nicht erreichbar) etwas anzuzeigen. */
+    private fun syncSensorHistoryInBackground() {
+        val uid = authRepository.currentUser?.uid ?: return
+        lifecycleScope.launch {
+            runCatching { SensorHistorySync(applicationContext).syncDueSensors(uid) }
         }
     }
 

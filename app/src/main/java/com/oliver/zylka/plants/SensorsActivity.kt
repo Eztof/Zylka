@@ -15,17 +15,23 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.oliver.zylka.R
 import com.oliver.zylka.data.plants.Sensor
+import com.oliver.zylka.data.plants.SensorBleScanner
+import com.oliver.zylka.data.plants.SensorLiveCache
 import com.oliver.zylka.data.plants.SensorRepository
 import com.oliver.zylka.databinding.ActivitySensorsBinding
 import com.oliver.zylka.util.applyStatusBarTopInset
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /** Liste aller Bluetooth-Sensoren (durchsuchbar). Tippen öffnet [SensorDetailActivity], "+"
- * öffnet [SensorEditActivity] zum Anlegen. */
+ * öffnet [SensorEditActivity] zum Anlegen. Lauscht dauerhaft (solange sichtbar) per BLE auf alle
+ * bekannten Sensoren und zeigt den frischen Live-Wert ([SensorLiveCache]) statt nur den zuletzt
+ * in Firestore gespeicherten - kein neuer Verbindungsaufbau nötig, nur um kurz nachzuschauen. */
 class SensorsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySensorsBinding
     private val sensorRepository = SensorRepository()
+    private val bleScanner by lazy { SensorBleScanner(applicationContext) }
     private val adapter = SensorAdapter { sensor -> startActivity(SensorDetailActivity.intent(this, sensor.id)) }
 
     private var allSensors: List<Sensor> = emptyList()
@@ -53,9 +59,35 @@ class SensorsActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sensorRepository.observeSensors().collect { sensors ->
-                    allSensors = sensors.sortedBy { it.name.lowercase() }
-                    renderList()
+                launch {
+                    sensorRepository.observeSensors().collect { sensors ->
+                        allSensors = sensors.sortedBy { it.name.lowercase() }
+                        renderList()
+                    }
+                }
+                launch {
+                    SensorLiveCache.readings.collect { renderList() }
+                }
+                launch { startLiveListeners() }
+            }
+        }
+    }
+
+    /** Ein Lauscher je bekanntem Sensor, parallel - endet automatisch mit dem umgebenden
+     * [repeatOnLifecycle]-Block (Screen nicht mehr sichtbar), startet beim nächsten
+     * Sichtbarwerden neu (holt dann auch inzwischen neu angelegte Sensoren mit rein). Einzelne
+     * Verbindungsfehler (z. B. Gerät gerade nicht erreichbar) werden verschluckt, statt die
+     * anderen Lauscher mit abzubrechen. */
+    private suspend fun startLiveListeners() = coroutineScope {
+        sensorRepository.loadSensors().forEach { sensor ->
+            if (sensor.macAddress.isBlank()) return@forEach
+            launch {
+                try {
+                    bleScanner.observeLiveReadings(sensor.macAddress).collect { reading ->
+                        SensorLiveCache.update(sensor.macAddress, reading)
+                    }
+                } catch (error: Exception) {
+                    // Wird beim nächsten Sichtbarwerden des Screens automatisch neu versucht.
                 }
             }
         }
