@@ -30,7 +30,10 @@
 
             <!-- Status: aktueller Wert + Komfort-Gauge, an das TP357-Karten-Layout der
                  ThermoPro-App angelehnt, hier in unserem Farbschema. -->
-            <com.google.android.material.card.MaterialCardView style="@style/Widget.Zylka.Card.Compact">
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Zylka.Card.Compact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
                 <LinearLayout
                     android:layout_width="match_parent"
