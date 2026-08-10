@@ -315,4 +315,19 @@
     <string name="hochzeit_termin_dialog_title">%1$s-Termin</string>
     <string name="hochzeit_termin_dialog_notiz_hint">Notiz (optional)</string>
     <string name="hochzeit_termin_dialog_kosten_hint">Kosten in € (optional)</string>
+
+    <!-- Hochzeitsplaner: Gästeliste -->
+    <string name="hochzeit_gast_liste_title">Gästeliste</string>
+    <string name="hochzeit_gast_search_hint">Gast suchen</string>
+    <string name="hochzeit_gast_summary">%1$d Gäste (%2$d sicher, %3$d mittel, %4$d mäh)</string>
+    <string name="hochzeit_gast_empty">Noch keine Gäste eingetragen</string>
+    <string name="hochzeit_gast_action_add">Gast hinzufügen</string>
+    <string name="hochzeit_gast_edit_title_new">Neuer Gast</string>
+    <string name="hochzeit_gast_edit_title_edit">Gast bearbeiten</string>
+    <string name="hochzeit_gast_edit_name_hint">Name</string>
+    <string name="hochzeit_gast_edit_label_kategorie">Kategorie</string>
+    <string name="hochzeit_gast_edit_label_prioritaet">Priorität</string>
+    <string name="hochzeit_gast_edit_notiz_hint">Notiz (optional)</string>
+    <string name="hochzeit_gast_edit_error_required">Bitte einen Namen eingeben</string>
+    <string name="hochzeit_gast_edit_delete_confirm">Diesen Gast wirklich löschen?</string>
 </resources>
