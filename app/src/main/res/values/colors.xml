@@ -58,6 +58,14 @@
     <color name="sensor_container">#E4DEFF</color>
     <color name="sensor_on_container">#20005C</color>
 
+    <!-- Regelkalender: eigener Rose-/Magenta-Ton (bewusst nicht brand_error, um keine
+         "Fehler/Alarm"-Konnotation auf einen normalen Körpervorgang zu legen) - regel_primary
+         ist zugleich die Basisfarbe für die Intensitäts-Einfärbung im Monats-Grid
+         (RegelDayAdapter blendet sie je nach Stufe mit Alpha ein). -->
+    <color name="regel_container">#FFD8E4</color>
+    <color name="regel_on_container">#3F0021</color>
+    <color name="regel_primary">#C2185B</color>
+
     <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>

@@ -124,6 +124,10 @@
             android:name=".plants.SensorDiagnosticActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".regel.RegelkalenderActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".waste.WasteAlarmReceiver"
             android:exported="false" />

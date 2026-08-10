@@ -582,6 +582,77 @@ Bildschirm der App dabei im Vordergrund halten.
   Artendatenbank-Anbindung: die Kategorie bleibt vorerst eine manuelle
   Auswahl.
 
+## Regelkalender
+
+Monatskalender für Menstruations-Tracking: jeder Tag hat standardmäßig
+Stufe 0 (keine Regel), antippen öffnet einen Editor zum Eintragen einer
+Intensität 1-10. Global geteilt zwischen allen eingeloggten Nutzern und per
+Firebase synchronisiert, wie der Gießplaner (`pots`/`plants`/`sensors`) -
+kein Per-Nutzer-Silo.
+
+### Datenmodell (Firestore, live synchronisiert)
+
+```
+regel_eintraege/{yyyy-MM-dd}   // ein Dokument pro Tag mit Eintrag, ID = ISO-Datum
+  intensitaet: Int (1-10), uid (wer zuletzt geändert hat),
+  geaendertAm (Server-Timestamp)
+```
+
+Tage mit Stufe 0 bekommen **kein** Dokument - 0 = Abwesenheit von Daten, nicht
+extra gespeichert. Beim Zurücksetzen auf 0 wird das Dokument gelöscht statt
+mit `intensitaet: 0` überschrieben. Die Datenmenge ist klein (höchstens ein
+Dokument pro Tag) - `RegelRepository` lädt die komplette Sammlung über einen
+einzigen Snapshot-Listener, kein Pagination-Aufwand nötig; die Prognose
+braucht ohnehin die volle Historie, nicht nur den sichtbaren Monat.
+
+### Rechenweg (`RegelCalculator`, ohne Android-Abhängigkeiten)
+
+Leitet aus der eingetragenen Historie "Perioden" ab und schreibt daraus
+künftige Zyklen fort - eine statistische Fortschreibung der eigenen
+Historie, kein medizinisches Modell:
+
+1. **Perioden erkennen** (`ermittlePerioden`): lückenlos aufeinanderfolgende
+   Tage mit Intensität > 0 werden zu einer Periode zusammengefasst - eine
+   einzelne Lücke von mindestens einem Tag beendet eine Periode.
+2. **Zykluslänge** = Median der Abstände zwischen den Startdaten
+   aufeinanderfolgender Perioden (robuster gegen einzelne Ausreißer-Zyklen
+   als der Mittelwert), aus den letzten höchstens 6 Zyklen.
+3. **Unsicherheit** = `(größter − kleinster Abstand) / 2` derselben Zyklen,
+   mindestens 1 Tag - ergibt eine "± X Tage"-Angabe, ohne Genauigkeit
+   vorzutäuschen, die die Datenlage nicht hergibt.
+4. **Intensitätsverlauf** = je Tag-Offset (0, 1, 2, ...) der Mittelwert aller
+   historischen Perioden, die diesen Offset erreicht haben.
+5. **Fortschreibung**: nächste Periode = letzte Periode + Median-Zykluslänge,
+   fortlaufend für mehrere künftige Perioden, jede mit der gelernten
+   Durchschnittsdauer und dem gelernten Intensitätsverlauf befüllt.
+
+Mit weniger als zwei erkannten Perioden gibt es keine Zykluslänge und damit
+keine Prognose - die App zeigt dann einen entsprechenden Hinweis statt eines
+Werts.
+
+### UI
+
+Prognose-Karte oben ("Nächste Periode voraussichtlich ab ... (± X Tage), ca.
+Y Tage"), darunter ein Monats-Grid (`RecyclerView` + `GridLayoutManager`,
+sieben Spalten - bewusst keine neue Canvas-View, da Tap-Hit-Testing für eine
+Canvas-Fläche selbst gebaut werden müsste, während `RecyclerView` das
+kostenlos mitbringt). Tage mit echtem Eintrag sind gefüllt eingefärbt (Alpha
+proportional zur Intensität), Tage einer Prognose-Periode ohne echten
+Eintrag nur umrandet - ein echter Eintrag hat immer Vorrang, eine Prognose
+ist nie mit echten Daten verwechselbar. Antippen eines beliebigen Tages
+(Vergangenheit wie Zukunft) öffnet den Editor mit einem `Slider` (0-10).
+
+### Grenzen des Modells
+
+Die Prognose kennt nur, was eingetragen wurde - unregelmäßige Zyklen, wenige
+Datenpunkte oder Lücken in der Erfassung verschlechtern sie. Es ist eine
+statistische Fortschreibung der eigenen Historie, kein medizinisches Modell,
+und ersetzt keine ärztliche Einschätzung. Erinnerungen/Benachrichtigungen
+("Periode in N Tagen erwartet") sind (noch) nicht eingebaut - das etablierte
+Alarm-Ketten-Muster aus dem Abfallkalender (`WastePrefs`/
+`WasteAlarmScheduler`/`WasteAlarmReceiver`/`WasteBootReceiver`/
+`WasteNotifier`) ließe sich dafür später übertragen.
+
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
 Das Projekt nutzt die bestehende Firebase-Datenbank `kennzeichen-zyo`.
@@ -680,6 +751,16 @@ match /sensor_readings/{readingId} {
   allow read: if request.auth != null;
   allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
   allow update, delete: if false;
+}
+```
+
+Für den Regelkalender (wie Töpfe/Pflanzen/Sensoren geteilt zwischen allen
+eingeloggten Nutzern - Werte werden nachträglich korrigiert, deshalb kein
+Append-only-Muster):
+
+```
+match /regel_eintraege/{eintragId} {
+  allow read, write: if request.auth != null;
 }
 ```
 
@@ -797,6 +878,10 @@ app/src/main/java/com/oliver/zylka/
 │       ├── SensorHistorySync.kt      # Gerätehistorie höchstens 1×/Tag mit Firestore abgleichen
 │       ├── SensorHistorySyncPrefs.kt # Letzter Sync-Zeitpunkt je Sensor (SharedPreferences)
 │       └── HeatIndexCalculator.kt    # Reine Rechenlogik: gefühlte Temperatur (NOAA/Rothfusz)
+│   └── regel/                  # Datenschicht des Regelkalenders
+│       ├── RegelEintrag.kt           # Ein Tag mit eingetragener Intensität (1-10)
+│       ├── RegelRepository.kt        # Firestore: regel_eintraege/{yyyy-MM-dd}
+│       └── RegelCalculator.kt        # Perioden-Erkennung, Zykluslänge, Prognose-Fortschreibung
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -837,6 +922,9 @@ app/src/main/java/com/oliver/zylka/
 │   ├── SensorHistoryChartView.kt    # Canvas-Custom-View: Temperatur-/Feuchte-Kurve mit Min/Max
 │   ├── SensorDiagnosticActivity.kt  # Rohdaten-Log aller BLE-Pakete, Filter, Export
 │   └── BleDiagnosticAdapter.kt      # RecyclerView-Adapter für das Rohdaten-Log
+├── regel/                       # UI des Regelkalenders
+│   ├── RegelkalenderActivity.kt     # Monats-Grid, Prognose-Karte, Tag-Editor
+│   └── RegelDayAdapter.kt           # RecyclerView-Adapter für das Monats-Grid (GridLayoutManager)
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```
