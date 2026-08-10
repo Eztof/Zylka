@@ -25,6 +25,7 @@
     <string name="action_logout">Abmelden</string>
     <string name="feature_kennzeichen">Kennzeichen</string>
     <string name="feature_regelkalender">Regelkalender</string>
+    <string name="feature_hochzeit">Hochzeitsplaner</string>
 
     <!-- Kennzeichen-Sammelspiel: Startseite -->
     <string name="kennzeichen_home_title">Kennzeichen sammeln</string>
@@ -272,4 +273,38 @@
     <string name="regel_weekday_sa">Sa</string>
     <string name="regel_weekday_so">So</string>
     <string name="regel_dialog_level">Stufe %1$d</string>
+
+    <!-- Hochzeitsplaner -->
+    <string name="hochzeit_termin_typ_standesamt">Standesamt</string>
+    <string name="hochzeit_termin_typ_kirche">Kirche</string>
+    <string name="hochzeit_termin_typ_location">Location</string>
+
+    <string name="hochzeit_termin_status_vorgeschlagen">Vorgeschlagen</string>
+    <string name="hochzeit_termin_status_bestaetigt">Bestätigt</string>
+    <string name="hochzeit_termin_status_abgesagt">Abgesagt</string>
+
+    <string name="hochzeit_gast_kategorie_freunde">Freunde</string>
+    <string name="hochzeit_gast_kategorie_familie">Familie</string>
+    <string name="hochzeit_gast_kategorie_arbeitskollegen">Arbeitskollegen</string>
+
+    <string name="hochzeit_gast_prioritaet_sicher">Sicher</string>
+    <string name="hochzeit_gast_prioritaet_mittel">Mittel</string>
+    <string name="hochzeit_gast_prioritaet_maeh">Mäh</string>
+
+    <string name="hochzeit_dienstleister_kategorie_dj">DJ / Musik</string>
+    <string name="hochzeit_dienstleister_kategorie_catering">Catering</string>
+    <string name="hochzeit_dienstleister_kategorie_fotograf">Fotograf</string>
+    <string name="hochzeit_dienstleister_kategorie_blumen">Blumen / Florist</string>
+    <string name="hochzeit_dienstleister_kategorie_location">Location</string>
+    <string name="hochzeit_dienstleister_kategorie_torte">Hochzeitstorte</string>
+    <string name="hochzeit_dienstleister_kategorie_dekoration">Dekoration</string>
+    <string name="hochzeit_dienstleister_kategorie_transport">Transport</string>
+    <string name="hochzeit_dienstleister_kategorie_brautmode">Brautmode</string>
+    <string name="hochzeit_dienstleister_kategorie_sonstiges">Sonstiges</string>
+
+    <string name="hochzeit_dienstleister_status_idee">Idee</string>
+    <string name="hochzeit_dienstleister_status_angefragt">Angefragt</string>
+    <string name="hochzeit_dienstleister_status_angebot_erhalten">Angebot erhalten</string>
+    <string name="hochzeit_dienstleister_status_gebucht">Gebucht</string>
+    <string name="hochzeit_dienstleister_status_abgesagt">Abgesagt</string>
 </resources>
