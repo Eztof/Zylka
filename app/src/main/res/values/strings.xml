@@ -347,4 +347,14 @@
     <string name="hochzeit_dienstleister_edit_notiz_hint">Notiz (optional)</string>
     <string name="hochzeit_dienstleister_edit_error_required">Bitte einen Namen eingeben</string>
     <string name="hochzeit_dienstleister_edit_delete_confirm">Diesen Dienstleister wirklich löschen?</string>
+
+    <!-- Hochzeitsplaner: Galerie -->
+    <string name="hochzeit_galerie_title">Galerie &amp; Dokumente</string>
+    <string name="hochzeit_galerie_empty">Noch keine Bilder oder PDFs hochgeladen</string>
+    <string name="hochzeit_galerie_action_add">Datei hochladen</string>
+    <string name="hochzeit_galerie_uploading">Wird hochgeladen …</string>
+    <string name="hochzeit_galerie_upload_failed">Hochladen fehlgeschlagen</string>
+    <string name="hochzeit_galerie_unnamed_file">Datei</string>
+    <string name="hochzeit_galerie_load_failed">Bild konnte nicht geladen werden</string>
+    <string name="hochzeit_galerie_no_pdf_app">Keine App zum Anzeigen von PDFs gefunden</string>
 </resources>
