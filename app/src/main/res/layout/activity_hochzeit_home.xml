@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/brand_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.Zylka.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:elevation="2dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Zylka.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hochzeit_status_termine_label"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:textColor="@color/brand_on_surface_variant" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/text_status_standesamt_symbol"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                                android:textColor="@color/brand_outline"
+                                android:textStyle="bold"
+                                tools:text="✓" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/hochzeit_termin_typ_standesamt"
+                                android:textAppearance="?attr/textAppearanceLabelSmall"
+                                android:textColor="@color/brand_on_surface_variant" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="40dp"
+                            android:background="@color/brand_outline_variant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/text_status_kirche_symbol"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                                android:textColor="@color/brand_outline"
+                                android:textStyle="bold"
+                                tools:text="?" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/hochzeit_termin_typ_kirche"
+                                android:textAppearance="?attr/textAppearanceLabelSmall"
+                                android:textColor="@color/brand_on_surface_variant" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="40dp"
+                            android:background="@color/brand_outline_variant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/text_status_location_symbol"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                                android:textColor="@color/brand_outline"
+                                android:textStyle="bold"
+                                tools:text="✗" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/hochzeit_termin_typ_location"
+                                android:textAppearance="?attr/textAppearanceLabelSmall"
+                                android:textColor="@color/brand_on_surface_variant" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/hochzeit_status_gaeste_label"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:textColor="@color/brand_on_surface_variant" />
+
+                    <TextView
+                        android:id="@+id/text_status_gaeste"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="@color/brand_on_surface"
+                        tools:text="14 Gäste (9 sicher, 3 mittel, 2 mäh)" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/hochzeit_status_dienstleister_label"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:textColor="@color/brand_on_surface_variant" />
+
+                    <TextView
+                        android:id="@+id/text_status_dienstleister"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="@color/brand_on_surface"
+                        tools:text="2 gebucht, 4 offen" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/hochzeit_status_kosten_label"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:textColor="@color/brand_on_surface_variant" />
+
+                    <TextView
+                        android:id="@+id/text_status_kosten"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="@color/brand_on_surface"
+                        tools:text="1.450,00 €" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:layout_marginBottom="10dp"
+                android:text="@string/hochzeit_actions_label"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="@color/brand_on_background" />
+
+            <include
+                android:id="@+id/card_termine"
+                layout="@layout/item_action_card" />
+
+            <include
+                android:id="@+id/card_gaeste"
+                layout="@layout/item_action_card"
+                android:layout_marginTop="10dp" />
+
+            <include
+                android:id="@+id/card_dienstleister"
+                layout="@layout/item_action_card"
+                android:layout_marginTop="10dp" />
+
+            <include
+                android:id="@+id/card_galerie"
+                layout="@layout/item_action_card"
+                android:layout_marginTop="10dp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

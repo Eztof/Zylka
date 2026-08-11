@@ -357,4 +357,16 @@
     <string name="hochzeit_galerie_unnamed_file">Datei</string>
     <string name="hochzeit_galerie_load_failed">Bild konnte nicht geladen werden</string>
     <string name="hochzeit_galerie_no_pdf_app">Keine App zum Anzeigen von PDFs gefunden</string>
+
+    <!-- Hochzeitsplaner: Hub -->
+    <string name="hochzeit_status_termine_label">Termine</string>
+    <string name="hochzeit_status_gaeste_label">Gäste</string>
+    <string name="hochzeit_status_dienstleister_label">Dienstleister</string>
+    <string name="hochzeit_status_dienstleister_value">%1$d gebucht, %2$d offen</string>
+    <string name="hochzeit_status_kosten_label">Kosten (gebucht)</string>
+    <string name="hochzeit_actions_label">Was möchtest du tun?</string>
+    <string name="hochzeit_action_termine_title">Termine</string>
+    <string name="hochzeit_action_gaeste_title">Gästeliste</string>
+    <string name="hochzeit_action_dienstleister_title">Dienstleister</string>
+    <string name="hochzeit_action_galerie_title">Galerie &amp; Dokumente</string>
 </resources>
