@@ -668,6 +668,74 @@ Alarm-Ketten-Muster aus dem Abfallkalender (`WastePrefs`/
 `WasteAlarmScheduler`/`WasteAlarmReceiver`/`WasteBootReceiver`/
 `WasteNotifier`) ließe sich dafür später übertragen.
 
+## Hochzeitsplaner
+
+Vierteiliges Modul für die Hochzeitsplanung, global geteilt zwischen allen
+eingeloggten Nutzern (dir und deiner Verlobten), wie
+`pots`/`plants`/`sensors`/`regel_eintraege`:
+
+### Datenmodell (Firestore, alle vier Sammlungen mit Präfix `hochzeit_`)
+
+```
+hochzeit_termine/{autoId}
+  terminTyp: STANDESAMT | KIRCHE | LOCATION
+  datum: String (ISO "yyyy-MM-dd"), status: VORGESCHLAGEN | BESTAETIGT | ABGESAGT
+  notiz, kostenEuro (optional), uid, geaendertAm (Server-Timestamp)
+
+hochzeit_gaeste/{autoId}
+  name, kategorie: FREUNDE | FAMILIE | ARBEITSKOLLEGEN
+  prioritaet: SICHER | MITTEL | MAEH, notiz (optional), uid
+
+hochzeit_dienstleister/{autoId}
+  name, kategorie: DJ | CATERING | FOTOGRAF | BLUMEN | LOCATION | TORTE |
+    DEKORATION | TRANSPORT | BRAUTMODE | SONSTIGES
+  status: IDEE | ANGEFRAGT | ANGEBOT_ERHALTEN | GEBUCHT | ABGESAGT
+  kostenEuro (optional), kontakt (optional Freitext), notiz (optional), uid
+
+hochzeit_dokumente/{autoId}
+  name, mimeTyp, storagePfad, downloadUrl, verknuepfterDienstleisterId
+  (optional), hochgeladenAm (Server-Timestamp), uid
+```
+
+**Termine** bilden bewusst drei unabhängige Kandidatenlisten ab (Standesamt/
+Kirche/Location) statt eines einzelnen "Hochzeitsdatums" - in der Praxis
+liegen Standesamt-Termin und Kirche/Feier oft an unterschiedlichen Tagen.
+
+### Firebase Storage per REST-API (kein Storage-SDK, keine Gradle-Änderung)
+
+`HochzeitStorageClient` spricht Firebase Storage komplett per Hand über die
+REST-API an (`HttpURLConnection`, wie `WeatherRepository`/`UpdateManager`),
+statt das offizielle `firebase-storage`-SDK einzubinden - Bearer-Token vom
+bereits vorhandenen `FirebaseAuth`, Bucket-Name aus den ohnehin geladenen
+`FirebaseApp`-Optionen. Upload/Download/Löschen laufen über
+`POST`/`GET`/`DELETE` auf
+`https://firebasestorage.googleapis.com/v0/b/{bucket}/o/...`.
+
+⚠️ Wie beim offiziellen SDK gilt: eine Firebase-Storage-Download-URL trägt
+ihre Berechtigung im Token der URL selbst - wer den Link hat, kommt an die
+Datei, ganz ohne erneuten Login-Check. Kein verstecktes Risiko, aber gut zu
+wissen, bevor ein Link geteilt wird.
+
+### Die vier Bereiche
+
+1. **Termine** (`TerminUebersichtActivity`) - drei Abschnitte
+   (Standesamt/Kirche/Location), Bearbeiten über einen Dialog
+   (`DatePickerDialog` + Status-Toggle + Notiz/Kosten) statt einer eigenen
+   Activity.
+2. **Gästeliste** (`GastListeActivity`/`GastEditActivity`) - Suche plus
+   Kategorie-/Prioritäts-Filterchips (Mehrfachauswahl), Summenzeile.
+3. **Dienstleister** (`DienstleisterListeActivity`/`DienstleisterEditActivity`)
+   - gleiche Struktur wie die Gästeliste, zusätzlich Kosten-Summe aller
+   gebuchten Einträge.
+4. **Galerie** (`GalerieActivity`/`BildAnsichtActivity`) - Bilder als
+   Thumbnails und PDFs als eigene Grid-Zeilen im selben Raster, Upload mit
+   Fortschrittsanzeige, Bilder werden sofort in-app groß angezeigt, PDFs an
+   eine externe PDF-fähige App übergeben.
+
+`HochzeitHomeActivity` bündelt alle vier hinter einer Hub-Seite mit
+Status-Karte (Termin-Status je Typ, Gäste-/Dienstleister-Zahlen,
+Kosten-Summe der gebuchten Dienstleister).
+
 ## Firebase einrichten (einmalig, in der Firebase Console)
 
 Das Projekt nutzt die bestehende Firebase-Datenbank `kennzeichen-zyo`.
@@ -779,13 +847,32 @@ match /regel_eintraege/{eintragId} {
 }
 ```
 
-## Firebase Storage einrichten (für Updates)
+Für den Hochzeitsplaner (wie Töpfe/Pflanzen/Sensoren/Regelkalender geteilt
+zwischen allen eingeloggten Nutzern, alles nachträglich korrigierbar):
+
+```
+match /hochzeit_termine/{terminId} {
+  allow read, write: if request.auth != null;
+}
+match /hochzeit_gaeste/{gastId} {
+  allow read, write: if request.auth != null;
+}
+match /hochzeit_dienstleister/{dienstleisterId} {
+  allow read, write: if request.auth != null;
+}
+match /hochzeit_dokumente/{dokumentId} {
+  allow read, write: if request.auth != null;
+}
+```
+
+## Firebase Storage einrichten (für Updates & Hochzeitsplaner-Galerie)
 
 1. Firebase Console → **Storage** aktivieren (falls noch nicht geschehen).
-2. Unter **Rules** folgendes eintragen: alles standardmäßig gesperrt, nur
-   der Ordner `releases/` ist öffentlich lesbar (damit der Download in der
-   App ohne Firebase-Login funktioniert), aber niemals von außen
-   beschreibbar:
+2. Unter **Rules** den Inhalt von `storage.rules` (Repo-Root) eintragen:
+   alles standardmäßig gesperrt, `releases/` öffentlich lesbar aber nie von
+   außen beschreibbar (damit der Update-Download ohne Firebase-Login
+   funktioniert), `hochzeitsplaner/` les- und schreibbar für alle
+   eingeloggten Nutzer (siehe [Hochzeitsplaner](#hochzeitsplaner)):
 
    ```
    rules_version = '2';
@@ -797,6 +884,9 @@ match /regel_eintraege/{eintragId} {
        match /releases/{fileName} {
          allow read: if true;
          allow write: if false;
+       }
+       match /hochzeitsplaner/{allPaths=**} {
+         allow read, write: if request.auth != null;
        }
      }
    }
@@ -897,6 +987,13 @@ app/src/main/java/com/oliver/zylka/
 │       ├── RegelEintrag.kt           # Ein Tag mit eingetragener Intensität (1-10)
 │       ├── RegelRepository.kt        # Firestore: regel_eintraege/{yyyy-MM-dd}
 │       └── RegelCalculator.kt        # Perioden-Erkennung, Zykluslänge, Prognose-Fortschreibung
+│   └── hochzeit/                # Datenschicht des Hochzeitsplaners
+│       ├── TerminTyp.kt / TerminStatus.kt / GastKategorie.kt / GastPrioritaet.kt /
+│       │   DienstleisterKategorie.kt / DienstleisterStatus.kt  # Enums mit Metadaten
+│       ├── TerminOption.kt / Gast.kt / Dienstleister.kt / Dokument.kt  # Firestore-Datenklassen
+│       ├── TerminRepository.kt / GastRepository.kt / DienstleisterRepository.kt /
+│       │   DokumentRepository.kt
+│       └── HochzeitStorageClient.kt  # Firebase Storage per Hand über die REST-API
 ├── kennzeichen/                # UI des Kennzeichen-Sammelspiels
 │   ├── KennzeichenHomeActivity.kt
 │   ├── KennzeichenEntryActivity.kt
@@ -940,6 +1037,17 @@ app/src/main/java/com/oliver/zylka/
 ├── regel/                       # UI des Regelkalenders
 │   ├── RegelkalenderActivity.kt     # Monats-Grid, Prognose-Karte, Tag-Editor
 │   └── RegelDayAdapter.kt           # RecyclerView-Adapter für das Monats-Grid (GridLayoutManager)
+├── hochzeit/                    # UI des Hochzeitsplaners
+│   ├── HochzeitHomeActivity.kt      # Hub: Status-Karte + vier Aktions-Kacheln
+│   ├── TerminUebersichtActivity.kt  # Standesamt/Kirche/Location, Dialog-Editor
+│   ├── TerminAdapter.kt
+│   ├── GastListeActivity.kt / GastEditActivity.kt  # Gästeliste: Suche+Filter, Formular
+│   ├── GastAdapter.kt
+│   ├── DienstleisterListeActivity.kt / DienstleisterEditActivity.kt
+│   ├── DienstleisterAdapter.kt
+│   ├── GalerieActivity.kt           # Grid (Bilder-Thumbnails + PDF-Zeilen), Upload
+│   ├── GalerieAdapter.kt
+│   └── BildAnsichtActivity.kt       # Bild-Vollbild-Ansicht
 └── update/
     └── UpdateManager.kt       # Lädt APK herunter, stößt Installation an
 ```
