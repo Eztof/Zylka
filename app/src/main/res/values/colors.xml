@@ -66,6 +66,10 @@
     <color name="regel_on_container">#3F0021</color>
     <color name="regel_primary">#C2185B</color>
 
+    <!-- Hochzeitsplaner: warmer Gold-/Champagner-Ton für die Kachel-Ikone. -->
+    <color name="hochzeit_container">#F5DEA3</color>
+    <color name="hochzeit_on_container">#4A3B00</color>
+
     <!-- Legacy / vom Standard-Template, noch von Launcher-Icons referenziert -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>

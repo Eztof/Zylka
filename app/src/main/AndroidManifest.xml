@@ -28,6 +28,15 @@
         android:name="android.hardware.bluetooth_le"
         android:required="false" />
 
+    <!-- Hochzeitsplaner-Galerie: prüfen, ob eine App PDFs anzeigen kann, bevor wir sie per
+         ACTION_VIEW dorthin schicken (ab API 30 sonst wortlos "keine App gefunden"). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -126,6 +135,38 @@
 
         <activity
             android:name=".regel.RegelkalenderActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.HochzeitHomeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.TerminUebersichtActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.GastListeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.GastEditActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.DienstleisterListeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.DienstleisterEditActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.GalerieActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".hochzeit.BildAnsichtActivity"
             android:exported="false" />
 
         <receiver

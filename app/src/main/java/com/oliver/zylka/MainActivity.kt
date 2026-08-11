@@ -23,6 +23,7 @@ import com.oliver.zylka.kennzeichen.KennzeichenHomeActivity
 import com.oliver.zylka.notenspiegel.NotenspiegelActivity
 import com.oliver.zylka.plants.PlantsHomeActivity
 import com.oliver.zylka.plants.SensorsActivity
+import com.oliver.zylka.hochzeit.HochzeitHomeActivity
 import com.oliver.zylka.regel.RegelkalenderActivity
 import com.oliver.zylka.update.UpdateManager
 import com.oliver.zylka.waste.WasteCalendarActivity
@@ -78,6 +79,9 @@ class MainActivity : AppCompatActivity() {
         }
         binding.cardRegelkalender.setOnClickListener {
             startActivity(Intent(this, RegelkalenderActivity::class.java))
+        }
+        binding.cardHochzeit.setOnClickListener {
+            startActivity(HochzeitHomeActivity.intent(this))
         }
 
         checkForUpdate()
